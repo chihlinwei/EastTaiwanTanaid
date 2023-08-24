@@ -1,0 +1,701 @@
+---
+title: "Rocky Shore Tanaids Compostion"
+author: "Chih-Lin Wei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(readxl)
+library(reshape2)
+library(doBy)
+library(dplyr)
+library(stringr)
+library(bipartite)
+library(ggplot2)
+library(ggraph)
+library(knitr)
+library(vegan)
+library(patchwork)
+library(boot)
+
+no_strip <- theme(strip.background = element_rect(colour=NA, fill=NA),
+                  strip.text = element_text(colour=NA))
+
+large <- theme(legend.title = element_text(size=15),
+        legend.text = element_text(size=15),
+        axis.title = element_text(size=15),
+        axis.text = element_text(size=15),
+        strip.text = element_text(size=15))
+
+rotate <- theme(axis.text.x = element_text(angle = 90, hjust=1, face="italic"))
+```
+
+# Preparing tanaid data
+
+```{r}
+ta0 <- read_excel("../Data/Tanaidacea community.xlsx", sheet = 3)
+ta <- ta0[, 1:2]
+# Create factor "Microhabitat"
+ta$Microhabitat <- str_replace(ta0$Microhabitat, " \\s*\\([^\\)]+\\)", "")
+# Create factor "Replicate"
+ta$Replicate <- str_extract(ta0$Microhabitat, "(?<=\\()\\d+(?=\\))")
+ta <- cbind(ta, ta0[,-1:-3])
+# Remove zero rows
+ta <- ta[rowSums(ta0[,-1:-3])!=0, ]
+ta$Site <- factor(ta$Site, levels=c("Shitiping", "Jihuei", "Jialulan"), labels = c("STP", "JH", "JLL"))
+ta$Season <- factor(ta$Season, levels = c("SP", "SU"))
+
+names(ta)[-1:-4] <- c("P. pangcahi", "Cyclopoapseudes sp.", "P. tagopilosus", "S. hansmuelleri", "I. multituberculata", "C. taitungensis", "P. setosa", "A. lenoprimorum","A. pedecerritulus", "T. nuwalianensis", "Z. shitipingensis", "Z. zorro")
+
+ta$Microhabitat <- factor(ta$Microhabitat, 
+                          levels = c("Amansia glomerata", "Asparagopsis sp.", "Asparagopsis taxiformis", "Caulerpa sp.", "Chlorodesmis sp.", "Corallina pilulifera", "Gelidium sp.", "Gravel, sand or silt", "Halimeda sp.", "Hypnea pannosa", "Hypnea sp.", "Jania sp.1", "Jania sp.2", "Mastophora rosea", "Padina sp.", "Plocamium sp.", "Tube of Eunice taoi"), 
+                          labels = c("A. glomerata", "Asparagopsis sp.", "A. taxiformis", "Caulerpa sp.", "Chlorodesmis sp.", "C. pilulifera", "Gelidium sp.", "Gravel, sand, silt", "Halimeda sp.", "H. pannosa", "Hypnea sp.", "Jania sp.1", "Jania sp.2", "M. rosea", "Padina sp.", "Plocamium sp.", "Tube of E. taoi"))
+```
+
+# Prepare CWB data
+
+```{r}
+library(rjson)
+library(dplyr)
+
+cwb <-  fromJSON(file="../Data/C-B0050-001.json")
+
+# Meta data 
+meta <- lapply(cwb$cwbdata$Resources$Resource$Data$SeaSurfaceObs$Location, FUN=function(x)x[[1]])
+
+# Monthly temperature
+dat <- lapply(cwb$cwbdata$Resources$Resource$Data$SeaSurfaceObs$Location, FUN=function(x)x[[2]]$Monthly)
+
+MonthlyTemperatureFun <- function(i){
+  cbind(StationNameEN = lapply(meta, FUN=function(x)x$StationNameEN)[i] %>% as.character %>% as.factor,
+        cbind(
+          StationLatitude=lapply(meta, FUN=function(x)x$StationLatitude)[i] %>% as.numeric,
+          StationLongitude=lapply(meta, FUN=function(x)x$StationLongitude)[i] %>% as.numeric,
+          DataMonth=lapply(dat[[i]], FUN=function(x)x$DataMonth) %>% unlist %>% as.numeric,
+          Maximum=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$Maximum) %>% unlist %>% as.numeric,
+          MaximumYear=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MaximumYear) %>% unlist %>% as.numeric,
+          Mean=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$Mean) %>% unlist %>% as.numeric,
+          Minimum=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$Minimum) %>% unlist %>% as.numeric,
+          MinimumYear=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MinimumYear) %>% unlist %>% as.numeric,
+          MinimumAnomaly=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MinimumAnomaly) %>% unlist %>% as.numeric,
+          MaximumAnomaly=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MaximumAnomaly) %>% unlist %>% as.numeric,
+          MeanAnomaly=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MeanAnomaly) %>% unlist %>% as.numeric
+          ) %>% as.data.frame
+  )
+}
+
+# Hualien Buoy
+hb <- MonthlyTemperatureFun(18) %>% subset((DataMonth=="4"|DataMonth=="8") & MinimumYear == "2012" & MaximumYear == "2012")
+# Chenggong
+cg <- MonthlyTemperatureFun(8) %>% subset((DataMonth=="4"|DataMonth=="8") & MinimumYear == "2012" & MaximumYear == "2012")
+# Taitung Buoy
+tb <- MonthlyTemperatureFun(34) %>% subset((DataMonth=="4"|DataMonth=="8") & MinimumYear == "2012" & MaximumYear == "2012")
+
+tmp <- rbind(hb, cg, tb)
+```
+
+# Average by microhabitat
+
+```{r}
+ta2 <- aggregate(ta[, -1:-4], by = list(ta$Site, ta$Season, ta$Microhabitat), FUN=mean)
+names(ta2)[1:3] <- c("Site", "Season", "Microhabitat")
+b2 <- ta2[, -1:-3]
+rownames(b2) <- with(ta2, paste(Site, Season, Microhabitat, sep="_"))
+```
+
+# Converts observations into a network matrix
+
+```{r}
+out <- melt(ta2, id.vars = c("Site", "Season", "Microhabitat"), variable.name = "Species", value.name = "Abundance")
+
+# Separate by seasons
+sp <- subset(out, Season=="SP")
+su <- subset(out, Season=="SU")
+
+sp_obs <- data.frame(higher = sp$Species, lower = sp$Microhabitat, webID =sp$Site, freq = sp$Abundance)
+su_obs <- data.frame(higher = su$Species, lower = su$Microhabitat, webID =su$Site, freq = su$Abundance)
+
+sp_web <- frame2webs(sp_obs,type.out="list")
+su_web <- frame2webs(su_obs,type.out="list")
+```
+
+# Bootstrapped re-sampling from replications to calculate 95% CI for bipartite web specialisation index H2
+
+```{r}
+H2fun_b <- function(d, i){
+  avg <- aggregate(d[i, -1:-4], by = list(d$Site, d$Season, d$Microhabitat), FUN=mean)
+  names(avg)[1:3] <- c("Site", "Season", "Microhabitat")
+  d2 <- melt(avg, id.vars = c("Site", "Season", "Microhabitat"), variable.name = "Species", value.name = "Abundance")
+  obs <- data.frame(higher = d2$Species, lower = d2$Microhabitat, webID =d2$Site, freq = d2$Abundance)
+  web <- frame2webs(obs, type.out="list")
+  # Only return H2 index
+  out <- c(H2fun(web$STP, H2_integer=FALSE)[1], 
+         H2fun(web$JH, H2_integer=FALSE)[1], 
+         H2fun(web$JLL, H2_integer=FALSE)[1])
+  return(out)
+}
+
+set.seed(200)
+sp_h2 <- boot(subset(ta, Season=="SP"), H2fun_b, R=1000)
+su_h2 <- boot(subset(ta, Season=="SU"), H2fun_b, R=1000)
+
+# 95% confidence interval
+sp_ci <- rbind(boot.ci(sp_h2, index=1, type="bca")$bca[4:5],
+               boot.ci(sp_h2, index=2, type="bca")$bca[4:5],
+               boot.ci(sp_h2, index=3, type="bca")$bca[4:5]
+)
+
+su_ci <- rbind(boot.ci(su_h2, index=1, type="bca")$bca[4:5],
+               boot.ci(su_h2, index=2, type="bca")$bca[4:5],
+               boot.ci(su_h2, index=3, type="bca")$bca[4:5]
+)
+
+out <- cbind(Site = c("STP", "JH", "JLL", "STP", "JH", "JLL"), Season = c("SP", "SP", "SP", "SU", "SU", "SU"),
+  data.frame(
+    H2 = c(sp_h2$t0, su_h2$t0),
+    H2.mean = c(apply(sp_h2$t, 2, mean, na.rm=T), apply(su_h2$t, 2, mean, na.rm=T)), 
+    rbind(sp_ci, su_ci), tmp[c(1, 3, 5, 2, 4, 6),]
+      ))
+
+
+kable(out)
+
+saveRDS(out, file="../Data/H2.rds")
+```
+
+```{r}
+out$Site <- factor(out$Site, levels=c("STP", "JH", "JLL"))
+ggplot(data=out, aes(x=Mean, y=H2, ymin=X1, ymax=X2, shape=Season, colour=Site))+
+  geom_point(size=2, stroke=1.5)+
+  geom_errorbar()+
+  stat_smooth(formula=y~x, method = "glm", aes(group=1), alpha=0.2, colour="gray50")+
+  scale_color_viridis_d()+
+  scale_shape_manual(values=c(1,19))+
+  labs(x = expression(Temperature~(degree~C)), y = "H2 index", title="A")+
+  theme_bw() %+replace% large
+```
+
+# Bipartite web between Tanaidacea species and microhabitat
+
+```{r}
+b_fun <- function(layout){
+  ggraph(layout) + 
+  geom_edge_link0(aes(edge_width = weight), edge_colour = "gray") +
+  geom_node_point(aes(shape = type, colour = type), size = 6) +
+  scale_edge_width() +
+  scale_colour_manual(values = c("#998ec3", "#f1a340"), labels =c("Microhabitat", "Tanaidacea")) +
+  scale_shape_manual(values = c(15, 19), labels =c("Microhabitat", "Tanaidacea"))+
+  labs(edge_width = "Average\nAbundance", colour = "Type", shape="Type")+
+  scale_x_continuous(breaks = layout$x[!layout$type], 
+                     labels = layout$name[!layout$type], 
+                     position = "top", 
+                     sec.axis = dup_axis(breaks = layout$x[layout$type], labels = layout$name[layout$type])
+                     ) +
+  coord_flip() +
+  theme(axis.text.y = element_text(face="italic"), panel.background = element_rect(fill = NA, color = NA)) 
+}
+
+p1 <- b_fun(create_layout(sp_web$STP, "bipartite")) + labs(tag = "A", caption = "(STP-SP)") 
+# For some reason, I need to add a "blank" value to make create_layout working.
+p2 <- b_fun(create_layout(cbind(su_web$STP, 0), "bipartite")[-11,]) + labs(tag = "B", caption = "(STP-SU)")
+
+p3 <- b_fun(create_layout(sp_web$JH, "bipartite")) + labs(tag = "C", caption = "(JH-SP)") 
+p4 <- b_fun(create_layout(su_web$JH, "bipartite")) + labs(tag = "D", caption = "(JH-SU)") 
+
+p5 <- b_fun(create_layout(sp_web$JLL, "bipartite")) + labs(tag = "E", caption = "(JLL-SP)") 
+p6 <- b_fun(create_layout(su_web$JLL, "bipartite")) + labs(tag = "F", caption = "(JLL-SU)") 
+```
+
+```{r, fig.height=12, fig.width=12}
+(p1+p2)/(p3+p4)/(p5+p6)
+```
+
+```{r}
+sp_d <- lapply(sp_web, FUN=function(x){
+  d <- (colSums(x)/sum(x))%>%sort(decreasing=TRUE)
+  out <- data.frame(Species=names(d), Abundance=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+su_d <- lapply(su_web, FUN=function(x){
+  d <- (colSums(x)/sum(x))%>%sort(decreasing=TRUE)
+  out <- data.frame(Species=names(d), Abundance=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Abundance))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Relative\nabundance", tag = "A", caption = "(STP-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Abundance))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Abundance))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Relative\nabundance", tag = "C", caption = "(JH-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Abundance))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Abundance))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Relative\nabundance", tag = "C", caption = "(JLL-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Abundance))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+```
+
+```{r, fig.height=12, fig.width=12}
+(p1+p2)/(p3+p4)/(p5+p6)
+```
+
+```{r}
+sp_d <- lapply(sp_web, FUN=function(x){
+  d <- (colSums(t(x))/sum(t(x)))%>%sort(decreasing=TRUE)
+  out <- data.frame(Species=names(d), Abundance=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+su_d <- lapply(su_web, FUN=function(x){
+  d <- (colSums(t(x))/sum(t(x)))%>%sort(decreasing=TRUE)
+  out <- data.frame(Species=names(d), Abundance=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Abundance))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Relative\nabundance", tag = "A", caption = "(STP-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Abundance))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Abundance))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Relative\nabundance", tag = "C", caption = "(JH-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Abundance))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Abundance))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Relative\nabundance", tag = "C", caption = "(JLL-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Abundance))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+```
+
+```{r, fig.height=12, fig.width=12}
+(p1+p2)/(p3+p4)/(p5+p6)
+```
+
+```{r}
+sp_d <- lapply(sp_web, FUN=function(x){
+  d <- decostand(x, "pa") %>% colSums() %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Link=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+su_d <- lapply(su_web, FUN=function(x){
+  d <- decostand(x, "pa") %>% colSums() %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Link=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Link))+
+  geom_bar(stat="identity")+
+  labs(x="", y="No. of link", tag = "A", caption = "(STP-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Link))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Link))+
+  geom_bar(stat="identity")+
+  labs(x="", y="No. of link", tag = "C", caption = "(JH-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Link))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Link))+
+  geom_bar(stat="identity")+
+  labs(x="", y="No. of link", tag = "C", caption = "(JLL-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Link))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+```
+
+```{r, fig.height=12, fig.width=12}
+(p1+p2)/(p3+p4)/(p5+p6)
+```
+
+```{r}
+sp_d <- lapply(sp_web, FUN=function(x){
+  d <- decostand(t(x), "pa") %>% colSums() %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Link=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+su_d <- lapply(su_web, FUN=function(x){
+  d <- decostand(t(x), "pa") %>% colSums() %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Link=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Link))+
+  geom_bar(stat="identity")+
+  labs(x="", y="No. of link", tag = "A", caption = "(STP-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Link))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Link))+
+  geom_bar(stat="identity")+
+  labs(x="", y="No. of link", tag = "C", caption = "(JH-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Link))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Link))+
+  geom_bar(stat="identity")+
+  labs(x="", y="No. of link", tag = "C", caption = "(JLL-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Link))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+```
+
+```{r, fig.height=12, fig.width=12}
+(p1+p2)/(p3+p4)/(p5+p6)
+```
+
+```{r}
+sp_d <- lapply(sp_web, FUN=function(x){
+  d <- ND(x, normalised=FALSE)$higher %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Degree=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+su_d <- lapply(su_web, FUN=function(x){
+  d <- ND(x, normalised=FALSE)$higher %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Degree=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Degree", tag = "A", caption = "(STP-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Degree", tag = "C", caption = "(JH-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Degree", tag = "C", caption = "(JLL-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+```
+
+```{r, fig.height=12, fig.width=12}
+(p1+p2)/(p3+p4)/(p5+p6)
+```
+
+```{r}
+sp_d <- lapply(sp_web, FUN=function(x){
+  d <- ND(t(x), normalised=FALSE)$higher %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Degree=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+su_d <- lapply(su_web, FUN=function(x){
+  d <- ND(t(x), normalised=FALSE)$higher %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Degree=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Degree", tag = "A", caption = "(STP-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Degree", tag = "C", caption = "(JH-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Degree", tag = "C", caption = "(JLL-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+```
+
+```{r, fig.height=12, fig.width=12}
+(p1+p2)/(p3+p4)/(p5+p6)
+```
+
+```{r}
+sp_d <- lapply(sp_web, FUN=function(x){
+  d <- ND(x, normalised=TRUE)$higher %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Degree=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+su_d <- lapply(su_web, FUN=function(x){
+  d <- ND(x, normalised=TRUE)$higher %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Degree=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Normalized\nDegree", tag = "A", caption = "(STP-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Normalized\nDegree", tag = "C", caption = "(JH-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Normalized\nDegree", tag = "C", caption = "(JLL-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+```
+
+```{r, fig.height=12, fig.width=12}
+(p1+p2)/(p3+p4)/(p5+p6)
+```
+
+```{r}
+sp_d <- lapply(sp_web, FUN=function(x){
+  d <- ND(t(x), normalised=TRUE)$higher %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Degree=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+su_d <- lapply(su_web, FUN=function(x){
+  d <- ND(t(x), normalised=TRUE)$higher %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Degree=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Normalized\nDegree", tag = "A", caption = "(STP-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Normalized\nDegree", tag = "C", caption = "(JH-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+
+p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Normalized\nDegree", tag = "C", caption = "(JLL-SP)")+
+  theme_bw() %+replace% rotate %+replace% large
+p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  theme_bw() %+replace% rotate %+replace% large
+```
+
+```{r, fig.height=12, fig.width=12}
+(p1+p2)/(p3+p4)/(p5+p6)
+```
+
+# Average across collection site and season
+
+```{r, fig.height=12, fig.width=12}
+ta3 <- aggregate(ta2[, -1:-3], by = list(ta2$Microhabitat), FUN=mean)
+names(ta3)[1] <- "Microhabitat"
+out <- melt(ta3, id.vars = c("Microhabitat"), variable.name = "Species", value.name = "Abundance")
+web <- data.frame(higher = out$Species, lower = out$Microhabitat, webID ="all", freq = out$Abundance) %>% frame2webs(type.out="list")
+b_fun(create_layout(web$all, "bipartite"))
+```
+```{r}
+d <- lapply(web, FUN=function(x){
+  d <- (colSums(x)/sum(x))%>%sort(decreasing=TRUE)
+  out <- data.frame(Species=names(d), Abundance=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p1 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Abundance))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Relative abundance", tag = "A")+
+  theme_bw() %+replace% rotate %+replace% large
+
+d <- lapply(web, FUN=function(x){
+  d <- decostand(x, "pa") %>% colSums() %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Link=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p2 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Link))+
+  geom_bar(stat="identity")+
+  labs(x="", y="No. of link", tag = "B")+
+  theme_bw() %+replace% rotate %+replace% large
+
+d <- lapply(web, FUN=function(x){
+  d <- ND(x, normalised=FALSE)$higher %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Degree=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p3 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Degree", tag = "C")+
+  theme_bw() %+replace% rotate %+replace% large
+
+d <- lapply(web, FUN=function(x){
+  d <- ND(x, normalised=TRUE)$higher %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Degree=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p4 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Normalized Degree", tag = "D")+
+  theme_bw() %+replace% rotate %+replace% large
+```
+
+```{r, fig.height=12, fig.width=12}
+(p1+p2)/(p3+p4)
+```
+
+```{r}
+d <- lapply(web, FUN=function(x){
+  d <- (colSums(t(x))/sum(t(x)))%>%sort(decreasing=TRUE)
+  out <- data.frame(Species=names(d), Abundance=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p1 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Abundance))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Relative abundance", tag = "A")+
+  theme_bw() %+replace% rotate %+replace% large
+
+d <- lapply(web, FUN=function(x){
+  d <- decostand(t(x), "pa") %>% colSums() %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Link=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p2 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Link))+
+  geom_bar(stat="identity")+
+  labs(x="", y="No. of link", tag = "B")+
+  theme_bw() %+replace% rotate %+replace% large
+
+d <- lapply(web, FUN=function(x){
+  d <- ND(t(x), normalised=FALSE)$higher %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Degree=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p3 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Degree", tag = "C")+
+  theme_bw() %+replace% rotate %+replace% large
+
+d <- lapply(web, FUN=function(x){
+  d <- ND(t(x), normalised=TRUE)$higher %>% sort(decreasing = TRUE)
+  out <- data.frame(Species=names(d), Degree=d)
+  out$Species <- factor(out$Species, levels=names(d))
+  return(out)
+  })
+
+p4 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Degree))+
+  geom_bar(stat="identity")+
+  labs(x="", y="Normalized Degree", tag = "D")+
+  theme_bw() %+replace% rotate %+replace% large
+```
+
+```{r, fig.height=12, fig.width=12}
+(p1+p2)/(p3+p4)
+```

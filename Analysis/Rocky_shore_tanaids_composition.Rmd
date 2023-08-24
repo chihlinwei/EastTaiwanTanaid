@@ -1,0 +1,325 @@
+---
+title: "Rocky Shore Tanaids Compostion"
+author: "Chih-Lin Wei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(readxl)
+library(reshape2)
+library(doBy)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(ggforce)
+library(vegan)
+library(ggdendro)
+library(patchwork)
+library(ggrepel)
+library(rjson)
+library(car)
+library(plyr)
+```
+
+# ggplot theme setting
+```{r}
+large <- theme(legend.title = element_text(size=15),
+        legend.text = element_text(size=15),
+        axis.title = element_text(size=15),
+        axis.text = element_text(size=15),
+        strip.text = element_text(size=15))
+
+rotate <- theme(axis.text.x = element_text(angle = 90, hjust=1))
+
+no_strip <- theme(strip.background = element_rect(colour=NA, fill=NA),
+                  strip.text = element_text(colour=NA))
+```
+
+# Preparing tanaid data
+
+```{r}
+ta0 <- read_excel("../Data/Tanaidacea community.xlsx", sheet = 3)
+ta <- ta0[, 1:2]
+# Create factor "Microhabitat"
+ta$Microhabitat <- str_replace(ta0$Microhabitat, " \\s*\\([^\\)]+\\)", "")
+# Create factor "Replicate"
+ta$Replicate <- str_extract(ta0$Microhabitat, "(?<=\\()\\d+(?=\\))")
+ta <- cbind(ta, ta0[,-1:-3])
+# Remove zero rows
+ta <- ta[rowSums(ta0[,-1:-3])!=0, ]
+ta$Site <- factor(ta$Site, levels=c("Shitiping", "Jihuei", "Jialulan"), labels = c("STP", "JH", "JLL"))
+ta$Season <- factor(ta$Season, levels = c("SP", "SU"))
+
+names(ta)[-1:-4] <- c("P. pangcahi", "Cyclopoapseudes sp.", "P. tagopilosus", "S. hansmuelleri", "I. multituberculata", "C. taitungensis", "P. setosa", "A. lenoprimorum","A. pedecerritulus", "T. nuwalianensis", "Z. shitipingensis", "Z. zorro")
+
+ta$Microhabitat <- factor(ta$Microhabitat, 
+                          levels = c("Amansia glomerata", "Asparagopsis sp.", "Asparagopsis taxiformis", "Caulerpa sp.", "Chlorodesmis sp.", "Corallina pilulifera", "Gelidium sp.", "Gravel, sand or silt", "Halimeda sp.", "Hypnea pannosa", "Hypnea sp.", "Jania sp.1", "Jania sp.2", "Mastophora rosea", "Padina sp.", "Plocamium sp.", "Tube of Eunice taoi"), 
+                          labels = c("A. glomerata", "Asparagopsis sp.", "A. taxiformis", "Caulerpa sp.", "Chlorodesmis sp.", "C. pilulifera", "Gelidium sp.", "Gravel, sand, silt", "Halimeda sp.", "H. pannosa", "Hypnea sp.", "Jania sp.1", "Jania sp.2", "M. rosea", "Padina sp.", "Plocamium sp.", "Tube of E. taoi"))
+
+# Only keep data for analysis
+b <- ta[, -1:-4]
+rownames(b) <- with(ta, paste(Site, Season, Microhabitat, Replicate, sep="_"))
+```
+
+# Preparing microhabitat grain size data
+
+```{r}
+cs <- read_excel("../Data/Grain-size composition.xlsx", sheet = 6) %>% as.data.frame
+
+cs$Microhabitat <- factor(cs$Microhabitat, levels=c("Amansia glomerata", "Asparagopsis sp.", "Asparagopsis taxiformis", 
+                                                    "Caulerpa sp.", "Chlorodesmis sp.", "Corallina pilulifera", "Gelidium sp.",
+                                                    "sand", "Halimeda sp.", "Hypnea pannosa", "Jania sp.1", "Jania sp.2", 
+                                                    "Mastophora rosea", "Padina sp.",  "polychaete tube"), 
+                          labels = c("A. glomerata", "Asparagopsis sp.", "A. taxiformis", "Caulerpa sp.", "Chlorodesmis sp.", 
+                                     "C. pilulifera", "Gelidium sp.", "Gravel, sand, silt", "Halimeda sp.", "H. pannosa",  
+                                     "Jania sp.1", "Jania sp.2", "M. rosea", "Padina sp.", "Tube of E. taoi"))
+
+# Average by site, season, and microhabitat
+cs_avg <- aggregate(cs[,-1:-5], by=list(cs$Site, cs$Season, cs$Microhabitat), FUN=mean, na.rm=TRUE)
+names(cs_avg)[1:3] <- c("Site", "Season", "Microhabitat")
+cs_avg[is.na(cs_avg)] <- 0
+
+cs[is.na(cs)] <- 0
+cs_names <- with(cs,  paste(Site, Season, Microhabitat, Replicate, sep="_"))
+ta_names <- with(ta,  paste(Site, Season, Microhabitat, Replicate, sep="_"))
+env <- cs[match(ta_names, cs_names), -1:-5]
+row.names(env) <- rownames(b)
+
+# Logit transformation and normalized (divided by sd)
+ens <- scale(logit(cs[, 6:9]/100))[match(ta_names, cs_names), ] %>% as.data.frame
+row.names(ens) <- rownames(b)
+```
+
+# Preparing CWB buoy data
+
+```{r}
+cwb <-  fromJSON(file="../Data/C-B0050-001.json")
+
+# Meta data 
+meta <- lapply(cwb$cwbdata$Resources$Resource$Data$SeaSurfaceObs$Location, FUN=function(x)x[[1]])
+
+# Monthly temperature
+dat <- lapply(cwb$cwbdata$Resources$Resource$Data$SeaSurfaceObs$Location, FUN=function(x)x[[2]]$Monthly)
+
+MonthlyTemperatureFun <- function(i){
+  cbind(StationNameEN = lapply(meta, FUN=function(x)x$StationNameEN)[i] %>% as.character %>% as.factor,
+        cbind(
+          StationLatitude=lapply(meta, FUN=function(x)x$StationLatitude)[i] %>% as.numeric,
+          StationLongitude=lapply(meta, FUN=function(x)x$StationLongitude)[i] %>% as.numeric,
+          DataMonth=lapply(dat[[i]], FUN=function(x)x$DataMonth) %>% unlist %>% as.numeric,
+          Maximum=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$Maximum) %>% unlist %>% as.numeric,
+          MaximumYear=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MaximumYear) %>% unlist %>% as.numeric,
+          Mean=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$Mean) %>% unlist %>% as.numeric,
+          Minimum=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$Minimum) %>% unlist %>% as.numeric,
+          MinimumYear=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MinimumYear) %>% unlist %>% as.numeric,
+          MinimumAnomaly=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MinimumAnomaly) %>% unlist %>% as.numeric,
+          MaximumAnomaly=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MaximumAnomaly) %>% unlist %>% as.numeric,
+          MeanAnomaly=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MeanAnomaly) %>% unlist %>% as.numeric
+          ) %>% as.data.frame
+  )
+}
+
+# Hualien Buoy
+hb <- MonthlyTemperatureFun(18) %>% subset((DataMonth=="4"|DataMonth=="8") & MinimumYear == "2012" & MaximumYear == "2012")
+# Chenggong
+cg <- MonthlyTemperatureFun(8) %>% subset((DataMonth=="4"|DataMonth=="8") & MinimumYear == "2012" & MaximumYear == "2012")
+# Taitung Buoy
+tb <- MonthlyTemperatureFun(34) %>% subset((DataMonth=="4"|DataMonth=="8") & MinimumYear == "2012" & MaximumYear == "2012")
+
+tmp <- rbind(hb, cg, tb)
+tmp$Site <- factor(tmp$StationNameEN, levels=c("Hualien Buoy", "Chenggong", "Taitung Buoy"), labels = c("STP", "JH", "JLL"))
+tmp$Season <- factor(tmp$DataMonth, levels=c(4, 8), labels=c("SP", "SU"))
+
+tmp_names <- with(tmp, paste(Site, Season, sep="_"))
+ta_names <- with(ta,  paste(Site, Season, sep="_"))
+
+env$Temperature <- tmp$Mean[match(ta_names, tmp_names)]
+# Log 10 transformation and normalize (divided by sd)
+ens$Temperature <- scale(log10(env$Temperature))
+```
+
+# By replicates
+### Cluster Analysis
+
+```{r, fig.width=10, fig.height=4}
+# Hierarchical Clustering based on square root transformed abundance data 
+# Agglomeration used group average (= UPGMA) method
+d <- vegdist(b^0.25)
+hc <- hclust(d, method="average")
+#plot(x = hc, labels =  row.names(hc), cex = 0.5, hang=-1)
+#rect.hclust(tree = hc, k = 4)
+fac <- ta[, 1:4]
+fac$Group <- cutree(hc, 4)
+# Reorder group from north to south as Groups 1, 2, 3
+fac$Group <- factor(fac$Group, levels=c(1,2,3,4), labels = c(2, 3, 1, 4))
+
+# Convert dendrogram to ggplot style
+dhc <- as.dendrogram(hc)
+ghc    <- dendro_data(dhc, type="rectangle") 
+
+# Merge sample info to dendrogram label data frame
+ord <- match(label(ghc)$label, rownames(b))
+ghc[["labels"]]   <- cbind(ghc[["labels"]], fac[ord,])
+```
+
+```{r}
+# Group membership
+
+# Group 1 (Shitiping = 82.6%)
+table(subset(fac, Group==1)$Site)
+# Group 2 (Jihuei = 52.6%, Jialulan = 28.9%)
+table(subset(fac, Group==2)$Site)
+# Group 3 (Jialulan = 77.6%, Jihuei = 17.2%)
+table(subset(fac, Group==3)$Site)
+```
+
+### Nonmetric Multidimensional Scaling
+
+```{r, fig.width=10, fig.height=4}
+# Remove outlier JH_AP_Jania sp.2_1
+md <- metaMDS(vegdist(b[-23,]^0.25))
+stress <- paste("Stress = ", deparse(round(md$stress,2)))
+
+keep <- names(colSums(b[-23,])%>%sort(decreasing = TRUE))[1:5]
+
+blab <- wascores(md$points, b[-23,]^0.25, expand = TRUE)[keep,] %>% as.data.frame
+blab$label <- paste("italic(", sub(" ", "~~", rownames(blab)), ")", sep="")
+
+# Only fits environmental vector to the replicate with grain size data
+keep <- !env[-23, 1:4]%>%rowSums%>%is.na
+set.seed(100)
+(fit <- envfit(md$points[keep,], env[-23,][keep,]))
+evec <- as.data.frame(scores(fit, display = "vectors")) * ordiArrowMul(fit, fill = 1.5)
+evec$label <- row.names(evec)
+
+# Mantel tests on each variables
+man <- list()
+man[[1]] <- mantel(vegdist(b[-23,][keep,]^0.25), dist(env[-23,][keep, "Silt2Clay"]))
+man[[2]] <- mantel(vegdist(b[-23,][keep,]^0.25), dist(env[-23,][keep, "Fine2VeryFine"]))
+man[[3]] <- mantel(vegdist(b[-23,][keep,]^0.25), dist(env[-23,][keep, "Medium"]))
+man[[4]] <- mantel(vegdist(b[-23,][keep,]^0.25), dist(env[-23,][keep, "Coarse2VeryCoarse"]))
+man[[5]] <- mantel(vegdist(b[-23,]^0.25), dist(env[-23, "Temperature"]))
+
+evec$mantel_r <- lapply(man, FUN=function(x)x$statistic) %>% unlist
+evec$signif <- lapply(man, FUN=function(x)x$signif) %>% unlist
+evec$pvals <- cut(evec$signif, breaks=c(0, 0.05, 0.1, 1), labels=c("<0.05", "<0.1", "NS")) %>% factor
+
+# Merge MDS to environmental data frame
+p2 <- ggplot(data=cbind(md$points, fac[-23,]), aes(x=MDS1, y=MDS2))+
+  geom_point(alpha=1, size=5, stroke=1, aes(colour=Site, shape=Season))+
+  geom_mark_hull(concavity = 10, aes(group=Group), colour="black", linetype=2)+
+  geom_segment(data= evec, aes(x=0, y=0, xend=MDS1, yend=MDS2, linewidth=pvals, linetype=pvals),
+               arrow = arrow(length=unit(.4, 'cm')), colour="red")+
+  annotate("text", x=-0.9, y=1.1, label=stress, size=5) +
+  annotate("text", x=1, y=0, label="1", size=10) +
+  annotate("text", x=-0.5, y=-0.6, label="2", size=10) +
+  annotate("text", x=-0.2, y=0.5, label="3", size=10) +
+  annotate("text", x=1.7, y=1.2, label="B", size=7) +
+  scale_shape_manual(values=c(1, 19))+
+  scale_color_viridis_d()+
+  scale_linewidth_manual(values=c(1.5, 0.7, 0.5))+
+  scale_linetype_manual(values=c(1, 1, 2))+
+  geom_label_repel(data=blab, aes(x=MDS1, y=MDS2, label=label), colour="black", 
+             fill=gray(1, 0.6), size=4, label.padding = unit(0.25, "lines"), parse=T)+
+  geom_label_repel(data=evec, aes(x=MDS1*1.2, y=MDS2*1.2, label=label), colour="red", 
+             fill=gray(1, 0.6), size=4, label.padding = unit(0.25, "lines"), force=2)+
+  labs(linewidth="p-value", linetype="p-value")+
+  theme_bw() %+replace% large
+```
+
+```{r, fig.width=14, fig.height=6}
+ggdendrogram(hc, rotate = FALSE)+
+  geom_point(data=label(ghc), aes(x, y, colour=Site, shape=Season), size=2, stroke=0.5)+
+  geom_hline(yintercept = 0.8, linetype=2, colour="red")+
+  annotate("text", x = 95, y = 0.85, label = "2", size = 5)+
+  annotate("text", x = 42, y = 0.85, label = "3", size = 5)+
+  annotate("text", x = 10, y = 0.85, label = "1", size = 5)+
+  scale_shape_manual(values=c(1, 19))+
+  scale_color_viridis_d()+
+  labs(x= "Replicate",y = "Bray-Curtis Dissimilarity")+
+  theme_bw() %+replace% theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(), axis.line.y = element_line(colour="black")) %+replace%  rotate
+```
+
+```{r, fig.width=10, fig.height=7}
+m <- acast(dat=ta, Microhabitat~Site+Season, fun.aggregate = length) 
+hc <- vegdist (m) %>% hclust(method="average")
+clust_names <- row.names(m)[rev(hc$order)]
+out <- cbind(md$points, fac[-23,])
+out$Microhabitat <- factor(out$Microhabitat, levels=clust_names)
+
+# Color code the microhabitat
+cols <- c("#222222", "#f3c300", "#875692", "#f38400", "#a1caf1", "#be0032", rep("#c2b280", 7), rep("#848482", 3),"#008856")
+shapes <- c(rep(19, 6), 0:6, 15, 17, 18:19)
+
+
+# MDS for each site and season
+md <- lapply(splitBy(~Site+Season, ta), FUN=function(x)metaMDS(x[,-1:-4]))
+# Stress levels
+st <- lapply(md, FUN=function(x)x$stress) %>% ldply
+st <- cbind(strsplit(st$.id, split="[|]") %>% ldply, st[, -1])
+names(st) <- c("Site", "Season", "stress")
+st$stress <- paste("Stress = ", round(st$stress,2))
+st$Site <- factor(st$Site, levels=c("STP", "JH", "JLL"))
+# MDS scores
+md <- cbind(ta[,1:4], lapply(md, FUN=function(x)x$points) %>% ldply)
+md$Microhabitat <- factor(md$Microhabitat, levels = clust_names)
+
+ggplot(data=md, aes(x=MDS1, y=MDS2, colour=Microhabitat, shape=Microhabitat))+
+  geom_point(size=3)+
+  geom_text(data = st, inherit.aes = FALSE, aes(x=Inf, y = Inf, label = stress), vjust=1.2, hjust=1.05)+
+  scale_colour_manual(values=cols)+
+  scale_shape_manual(values=shapes)+
+  facet_grid(Site~Season, scales="free")+
+  theme_bw() %+replace% large
+```
+
+# Aggregate by site-season
+
+```{r}
+ta3 <- aggregate(b, by = list(ta$Site, ta$Season), FUN=mean)
+names(ta3)[1:2] <- c("Site", "Season")
+b3 <- ta3[, -1:-2]
+rownames(b3) <- with(ta3, paste(Site, Season, sep="_"))
+
+# Average by site and season
+cs_avg2 <- aggregate(cs[,-1:-5], by=list(cs$Site, cs$Season), FUN=mean, na.rm=TRUE)
+names(cs_avg2)[1:2] <- c("Site", "Season")
+cs_avg2
+```
+
+### Cluster Analysis
+
+```{r, fig.width=10, fig.height=4}
+# Hierarchical Clustering based on square root transformed abundance data 
+# Agglomeration used group average (= UPGMA) method
+(d <- vegdist(b3^0.25))
+hc <- hclust(d, method="average")
+fac <- ta3[, 1:2]
+
+# Convert dendrogram to ggplot style
+dhc <- as.dendrogram(hc)
+ghc    <- dendro_data(dhc, type="rectangle") 
+
+# Merge sample info to dendrogram label data frame
+ord <- match(label(ghc)$label, rownames(b3))
+ghc[["labels"]]   <- cbind(ghc[["labels"]], fac[ord,])
+
+p5 <- ggdendrogram(hc, rotate = FALSE)+
+  geom_point(data=label(ghc), aes(x, y, colour=Site, shape=Season), size=4, stroke=1.3)+
+  annotate("text", x=6, y=0.4, label="A", size=7) +
+  scale_shape_manual(values=c(1, 19))+
+  scale_color_viridis_d()+
+  labs(x= "",y = "Bray-Curtis Dissimilarity")+
+  theme_bw() %+replace% theme(legend.position = "none", panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),axis.line.y = element_line(colour="black")) %+replace% large
+```
+
+### Comibining site-season clustering with replicate-level nMDS
+
+```{r, fig.width=10, fig.height=10}
+p5/p2+plot_layout(nrow = 2, heights = c(1, 3))
+```

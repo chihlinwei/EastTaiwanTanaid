@@ -1,0 +1,173 @@
+---
+title: "Rochy Shore Substrate Grain Size"
+author: "Chih-Lin Wei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(readxl)
+library(reshape2)
+library(doBy)
+library(plyr)
+library(stringr)
+library(ggplot2)
+library(vegan)
+library(patchwork)
+library(rjson)
+library(car)
+#devtools::install_github("vqv/ggbiplot")
+library(ggbiplot)
+```
+
+# ggplot theme setting
+```{r}
+large <- theme(legend.title = element_text(size=15),
+        legend.text = element_text(size=15),
+        axis.title = element_text(size=15),
+        axis.text = element_text(size=15),
+        strip.text = element_text(size=15))
+
+rotate <- theme(axis.text.x = element_text(angle = 90, hjust=1))
+
+no_strip <- theme(strip.background = element_rect(colour=NA, fill=NA),
+                  strip.text = element_text(colour=NA))
+```
+
+# Preparing tanaid data
+
+```{r}
+ta0 <- read_excel("../Data/Tanaidacea community.xlsx", sheet = 3)
+ta <- ta0[, 1:2]
+# Create factor "Microhabitat"
+ta$Microhabitat <- str_replace(ta0$Microhabitat, " \\s*\\([^\\)]+\\)", "")
+# Create factor "Replicate"
+ta$Replicate <- str_extract(ta0$Microhabitat, "(?<=\\()\\d+(?=\\))")
+ta <- cbind(ta, ta0[,-1:-3])
+# Remove zero rows
+ta <- ta[rowSums(ta0[,-1:-3])!=0, ]
+ta$Site <- factor(ta$Site, levels=c("Shitiping", "Jihuei", "Jialulan"), labels = c("STP", "JH", "JLL"))
+ta$Season <- factor(ta$Season, levels = c("SP", "SU"))
+
+names(ta)[-1:-4] <- c("P. pangcahi", "Cyclopoapseudes sp.", "P. tagopilosus", "S. hansmuelleri", "I. multituberculata", "C. taitungensis", "P. setosa", "A. lenoprimorum","A. pedecerritulus", "T. nuwalianensis", "Z. shitipingensis", "Z. zorro")
+
+ta$Microhabitat <- factor(ta$Microhabitat, 
+                          levels = c("Amansia glomerata", "Asparagopsis sp.", "Asparagopsis taxiformis", "Caulerpa sp.", "Chlorodesmis sp.", "Corallina pilulifera", "Gelidium sp.", "Gravel, sand or silt", "Halimeda sp.", "Hypnea pannosa", "Hypnea sp.", "Jania sp.1", "Jania sp.2", "Mastophora rosea", "Padina sp.", "Plocamium sp.", "Tube of Eunice taoi"), 
+                          labels = c("A. glomerata", "Asparagopsis sp.", "A. taxiformis", "Caulerpa sp.", "Chlorodesmis sp.", "C. pilulifera", "Gelidium sp.", "Gravel, sand, silt", "Halimeda sp.", "H. pannosa", "Hypnea sp.", "Jania sp.1", "Jania sp.2", "M. rosea", "Padina sp.", "Plocamium sp.", "Tube of E. taoi"))
+```
+
+```{r}
+m <- acast(dat=ta, Site+Season~Microhabitat, fun.aggregate = length)
+# Hierarchical Clustering based on square root transformed abundance data 
+# Agglomeration used group average (= UPGMA) method
+d <- vegdist(t(m))
+hc <- hclust(d, method="average")
+clust_names <- colnames(m)[hc$order]
+
+out <- melt(m)
+out$Var2 <- factor(out$Var2, levels=clust_names)
+out <- out[!out$value==0, ]
+
+p1 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
+  geom_tile(colour="black")+
+  scale_fill_viridis_c(na.value="white")+
+  labs(x = "", y="Microhabitat", fill="No.", tag="A", title="Replication")+
+  theme(axis.text.y = element_text(face = "italic")) 
+```
+
+# Preparing microhabitat grain size data
+
+```{r}
+cs <- read_excel("../Data/Grain-size composition.xlsx", sheet = 6) %>% as.data.frame
+
+cs$Microhabitat <- factor(cs$Microhabitat, levels=c("Amansia glomerata", "Asparagopsis sp.", "Asparagopsis taxiformis", 
+                                                    "Caulerpa sp.", "Chlorodesmis sp.", "Corallina pilulifera", "Gelidium sp.",
+                                                    "sand", "Halimeda sp.", "Hypnea pannosa", "Jania sp.1", "Jania sp.2", 
+                                                    "Mastophora rosea", "Padina sp.",  "polychaete tube"), 
+                          labels = c("A. glomerata", "Asparagopsis sp.", "A. taxiformis", "Caulerpa sp.", "Chlorodesmis sp.", 
+                                     "C. pilulifera", "Gelidium sp.", "Gravel, sand, silt", "Halimeda sp.", "H. pannosa",  
+                                     "Jania sp.1", "Jania sp.2", "M. rosea", "Padina sp.", "Tube of E. taoi"))
+cs$Site <- factor(cs$Site, levels=c("STP", "JH", "JLL"))
+
+# Average by site, season, and microhabitat
+cs_avg <- aggregate(cs[,-1:-5], by=list(cs$Site, cs$Season, cs$Microhabitat), FUN=mean, na.rm=TRUE)
+names(cs_avg)[1:3] <- c("Site", "Season", "Microhabitat")
+cs_avg[is.na(cs_avg)] <- 0
+cs[is.na(cs)] <- 0
+```
+
+```{r}
+# Weight (g)
+m <- acast(dat=cs[,c(1:3, 5)], Site+Season~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
+out <- melt(m)
+out$Var2 <- factor(out$Var2, levels=clust_names)
+out <- na.omit(out)
+out <- out[!out$value==0, ]
+
+c0 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=log10(value)))+
+  geom_tile(colour="black")+
+  scale_fill_viridis_c(na.value="white", breaks = c(-1, 0, 1, 2), labels=c(0.1, 1, 10, 100))+
+  labs(x = "", y="", fill="g", tag="B", title="Sediment weight (g)")+
+  theme(axis.text.y = element_text(face = "italic")) 
+
+# Sit2Clay
+m <- acast(dat=cs[,c(1:3, 6)], Site+Season~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
+out <- melt(m)
+out$Var2 <- factor(out$Var2, levels=clust_names)
+out <- na.omit(out)
+out <- out[!out$value==0, ]
+
+c1 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
+  geom_tile(colour="black")+
+  scale_fill_viridis_c(na.value="white")+
+  labs(x = "", y="Microhabitat", fill="%", tag="C", title="Silt to clay")+
+  theme(axis.text.y = element_text(face = "italic")) 
+
+# Fine2VeryFine
+m <- acast(dat=cs[,c(1:3, 7)], Site+Season~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
+out <- melt(m)
+out$Var2 <- factor(out$Var2, levels=clust_names)
+out <- na.omit(out)
+out <- out[!out$value==0, ]
+
+c2 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
+  geom_tile(colour="black")+
+  scale_fill_viridis_c(na.value="white")+
+  labs(x = "", y="", fill="%", tag="D", title="Fine to very fine sand")+
+  theme(axis.text.y = element_text(face = "italic")) 
+
+# Medium
+m <- acast(dat=cs[,c(1:3, 8)], Site+Season~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
+out <- melt(m)
+out$Var2 <- factor(out$Var2, levels=clust_names)
+out <- na.omit(out)
+out <- out[!out$value==0, ]
+
+c3 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
+  geom_tile(colour="black")+
+  scale_fill_viridis_c(na.value="white")+
+  labs(x = "Site-Season", y="Microhabitat", fill="%", tag="E", title="Medium sand")+
+  theme(axis.text.y = element_text(face = "italic"))
+
+
+# Coarse2VeryCoarse
+m <- acast(dat=cs[,c(1:3, 9)], Site+Season~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
+out <- melt(m)
+out$Var2 <- factor(out$Var2, levels=clust_names)
+out <- na.omit(out)
+out <- out[!out$value==0, ]
+
+c4 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
+  geom_tile(colour="black")+
+  scale_fill_viridis_c(na.value="white")+
+  labs(x = "Site-Season", y="", fill="%", tag="F", title="Coarse to very coarse sand")+
+  theme(axis.text.y = element_text(face = "italic"))
+```
+
+```{r, fig.width=12, fig.height=10}
+(p1+c0)/(c1+c2)/(c3+c4)
+```

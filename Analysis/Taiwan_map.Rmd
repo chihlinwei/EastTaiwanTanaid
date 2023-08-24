@@ -1,0 +1,67 @@
+---
+title: "Taiwan map"
+author: "Chih-Lin Wei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(PBSmapping)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(ggsn)
+library(fields)
+library(knitr)
+
+tw <- importGSHHS("../Data/gshhs_f.b", xlim=c(119, 123), ylim=c(21, 26))
+
+
+Shitiping <- c(23+28.96/60, 121+30.78/60)
+Jihuei <- c(23+6.86/60, 121+24.18/60)
+Jialulan <- c(22+48.17/60, 121+11.95/60)
+Hualien <- c(24.03, 121.63)
+Chenggong <- c(23.10, 121.38)
+Taitung <- c(22.72, 121.14)
+
+site <- rbind(Shitiping, Jihuei, Jialulan)%>%as.data.frame
+site <- cbind(row.names(site), site)
+names(site) <- c("Site", "Y", "X")
+site$Site <- factor(site$Site, levels=c("Shitiping", "Jihuei", "Jialulan"), labels = c("Shitiping (STP)", "Jihuei (JH)", "Jialulan (JLL)"))
+
+buoy <- rbind(Hualien, Chenggong, Taitung)%>%as.data.frame
+buoy <- cbind(row.names(buoy), buoy)
+names(buoy) <- c("Site", "Y", "X")
+buoy$Site <- factor(buoy$Site, levels=c("Hualien", "Chenggong", "Taitung"), labels=c("Hualien bouy", "Chenggong", "Taitung bouy"))
+
+# Distance in kilometer
+d <- rdist.earth(site[, 3:2], buoy[, 3:2], miles = FALSE)
+row.names(d) <- site$Site
+colnames(d) <- buoy$Site
+kable(d)
+```
+
+```{r}
+mp <- ggplot(dat=tw)+
+  geom_path(data=tw, aes(x=X, y=Y, group=PID))+
+  geom_point(data=site, aes(x=X, y=Y), size=4)+
+  geom_point(data=buoy, aes(x=X, y=Y), fill="white", pch=21, size=3)+
+  geom_text(data=site, aes(x=X, y=Y, label=Site), hjust=-0.2)+
+  geom_text(data=buoy, aes(x=X, y=Y, label=Site), hjust=1.2, size=3)+
+  annotate(geom = "text", x = 120, y = 24.5, label = "Taiwan", size=8)+
+  labs(x="", y="")+
+  scale_color_viridis_d()+
+  coord_map(xlim=c(119.2, 122.5), ylim=c(21.9, 25.2))+
+  theme_bw() %+replace% theme(legend.position = "none")
+```
+
+```{r, fig.width=6, fig.height=6}
+north2(mp, x=0.4, scale=0.15)
+```
+
+
+

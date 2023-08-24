@@ -1,0 +1,123 @@
+---
+title: "Central Weather Bureau Temperature Data"
+author: "Chih-Lin Wei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(rjson)
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(patchwork)
+
+large <- theme(legend.title = element_text(size=15),
+        legend.text = element_text(size=15),
+        axis.title = element_text(size=15),
+        axis.text = element_text(size=15),
+        strip.text = element_text(size=15))
+
+rotate <- theme(axis.text.x = element_text(angle = 90, hjust=1))
+
+no_strip <- theme(strip.background = element_rect(colour=NA, fill=NA),
+                  strip.text = element_text(colour=NA))
+```
+
+# Central Weather Bureau Buoy Data
+
+```{r}
+cwb <-  fromJSON(file="../Data/C-B0050-001.json")
+
+# Meta data 
+meta <- lapply(cwb$cwbdata$Resources$Resource$Data$SeaSurfaceObs$Location, FUN=function(x)x[[1]])
+
+# Monthly temperature
+dat <- lapply(cwb$cwbdata$Resources$Resource$Data$SeaSurfaceObs$Location, FUN=function(x)x[[2]]$Monthly)
+
+MonthlyTemperatureFun <- function(i){
+  cbind(StationNameEN = lapply(meta, FUN=function(x)x$StationNameEN)[i] %>% as.character %>% as.factor,
+        cbind(
+          StationLatitude=lapply(meta, FUN=function(x)x$StationLatitude)[i] %>% as.numeric,
+          StationLongitude=lapply(meta, FUN=function(x)x$StationLongitude)[i] %>% as.numeric,
+          DataMonth=lapply(dat[[i]], FUN=function(x)x$DataMonth) %>% unlist %>% as.numeric,
+          Maximum=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$Maximum) %>% unlist %>% as.numeric,
+          MaximumYear=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MaximumYear) %>% unlist %>% as.numeric,
+          Mean=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$Mean) %>% unlist %>% as.numeric,
+          Minimum=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$Minimum) %>% unlist %>% as.numeric,
+          MinimumYear=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MinimumYear) %>% unlist %>% as.numeric,
+          MinimumAnomaly=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MinimumAnomaly) %>% unlist %>% as.numeric,
+          MaximumAnomaly=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MaximumAnomaly) %>% unlist %>% as.numeric,
+          MeanAnomaly=lapply(dat[[i]], FUN=function(x)x$SeaTemperature$MeanAnomaly) %>% unlist %>% as.numeric
+          ) %>% as.data.frame
+  )
+}
+
+
+hb <- MonthlyTemperatureFun(18) %>% subset(MinimumYear ==  MaximumYear)
+hb$grp <- "hb"
+
+cg <- MonthlyTemperatureFun(8) %>% subset(MinimumYear ==  MaximumYear)
+cg$grp <- "cg"
+
+tb <- MonthlyTemperatureFun(34) %>% subset(MinimumYear ==  MaximumYear)
+tb$grp <- "tb3"
+tb$grp[1:43] <- "tb1"
+tb$grp[44:68] <- "tb2"
+
+out <- rbind(hb, cg, tb) 
+out$Time <- as.POSIXct(paste(out$MaximumYear, substr(as.character(out$DataMonth+1000), 3, 4), "15", sep="-"))
+```
+
+```{r, fig.width=8, fig.height=8, eval=FALSE, echo=FALSE}
+ggplot(data=out,aes(x=Time, y=Mean, ymin=Minimum, ymax=Maximum, group=grp))+
+  geom_path()+
+  #geom_point()+
+  geom_ribbon(alpha=0.1, colour="transparent")+
+  geom_vline(xintercept = as.POSIXct(c("2012-04-15", "2012-08-15")), colour="red", linetype=2)+
+  scale_x_continuous(breaks=as.POSIXct(paste(2003:2023, "01", "01", sep="-")), labels=2003:2023)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  facet_wrap(~StationNameEN, ncol=1)+
+  labs(x="Month", y=expression(Monthly~mean~temperature~(degree~C)), colour="Buoy", fill="Buoy")+
+  theme_bw() 
+```
+
+```{r, fig.width=8, fig.height=8}
+p1 <- ggplot(data=out,aes(x=Time, y=Mean, ymin=Minimum, ymax=Maximum, group=grp, colour=StationNameEN, fill=StationNameEN))+
+  geom_path()+
+  geom_point()+
+  #geom_ribbon(alpha=0.1, colour="transparent")+
+  geom_vline(xintercept = as.POSIXct(c("2012-04-15", "2012-08-15")), colour="red", linetype=2)+
+  scale_x_continuous(breaks=as.POSIXct(paste(2003:2023, "01", "01", sep="-")), labels=2003:2023)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  #facet_wrap(~StationNameEN, ncol=1)+
+  labs(x="Month", y=expression(Monthly~mean~temperature~(degree~C)), colour="Buoy", fill="Buoy", title="A")+
+  xlim(as.POSIXct(paste(2011, "06", "01", sep="-")), as.POSIXct(paste(2013, "07", "31", sep="-")))+
+  theme_bw()  %+replace% large %+replace% theme(axis.text.x = element_blank(), axis.title.x = element_blank())
+```
+
+```{r, fig.width=8, fig.height=8}
+p2 <- ggplot(data=out,aes(x=Time, y=Mean, ymin=Minimum, ymax=Maximum, group=grp, colour=StationNameEN, fill=StationNameEN))+
+  geom_path()+
+  geom_point()+
+  geom_ribbon(alpha=0.1, colour="transparent")+
+  geom_vline(xintercept = as.POSIXct(c("2012-04-15", "2012-08-15")), colour="red", linetype=2)+
+  scale_x_continuous(breaks=as.POSIXct(paste(2003:2023, "01", "01", sep="-")), labels=2003:2023)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  facet_wrap(~StationNameEN, ncol=1)+
+  labs(x="Month", y=expression(Monthly~mean~temperature~(degree~C)), colour="Buoy", fill="Buoy", title="B")+
+  xlim(as.POSIXct(paste(2011, "06", "01", sep="-")), as.POSIXct(paste(2013, "07", "31", sep="-")))+
+  theme_bw()  %+replace% large %+replace% no_strip
+```
+
+```{r, fig.width=12, fig.height=13}
+p1/p2+plot_layout(nrow = 2, heights = c(1, 3))
+```
+
