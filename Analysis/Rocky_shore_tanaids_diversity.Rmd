@@ -245,13 +245,14 @@ h2$Site <- factor(h2$Site, levels=c("STP", "JH", "JLL"))
 
 ```{r}
 pv <- round(summary(lm(S.obs~Mean, data=t0))$coefficients[2, 4], 3)
-r2 <- round(summary(lm(S.obs~Mean, data=t0))$adj.r.squared, 3)
-label = paste0("P==", pv, "*','~italic(R)^2 ==", r2)
+r2 <- round(summary(lm(S.obs~Mean, data=t0))$adj.r.squared, 2)
+f <- round(summary(lm(S.obs~Mean, data=t0))$fstatistic[1], 2)
+label = paste0("italic(F)['1,4'] ==", f, "*','~P==", pv, "*','~italic(R)^2 ==", r2)
 
 p7 <- ggplot(data=t0, aes(x=Mean, y=S.obs, shape=Season, colour=Site))+
   geom_point(size=2, stroke=1.5)+
   stat_smooth(formula=y~x, method = "glm", aes(group=1), alpha=0.2, colour="gray", linetype=2)+
-  annotate(geom = "text", x = 25, y = 12.5, hjust = 0, vjust = 1, label = label, parse = TRUE) +
+  annotate(geom = "text", x = 24, y = 12.5, hjust = 0, vjust = 1, label = label, parse = TRUE) +
   scale_color_viridis_d()+
   scale_shape_manual(values=c(1,19))+
   labs(x = expression(Temperature~(degree~C)), y = "Numbers of Species", title="A")+
@@ -260,14 +261,15 @@ p7 <- ggplot(data=t0, aes(x=Mean, y=S.obs, shape=Season, colour=Site))+
 
 ```{r}
 pv <- round(summary(lm(qD~Mean, data=t1))$coefficients[2, 4], 3)
-r2 <- round(summary(lm(qD~Mean, data=t1))$adj.r.squared, 3)
-label = paste0("P==", pv, "*','~italic(R)^2 ==", r2)
+r2 <- round(summary(lm(qD~Mean, data=t1))$adj.r.squared, 2)
+f <- round(summary(lm(qD~Mean, data=t1))$fstatistic[1], 2)
+label = paste0("italic(F)['1,4'] ==", f, "*','~P==", pv, "*','~italic(R)^2 ==", r2)
 
 p8 <- ggplot(data=t1, aes(x=Mean, y=qD, ymin=qD.LCL, ymax=qD.UCL, shape=Season, colour=Site))+
   geom_point(size=2, stroke=1.5)+
   geom_errorbar()+
   stat_smooth(formula=y~x, method = "glm", aes(group=1), alpha=0.2, colour="gray", linetype=2)+
-  annotate(geom = "text", x = 25, y = 22, hjust = 0, vjust = 1, label = label, parse = TRUE) +
+  annotate(geom = "text", x = 24.5, y = 22, hjust = 0, vjust = 1, label = label, parse = TRUE) +
   scale_color_viridis_d()+
   scale_shape_manual(values=c(1,19))+
   labs(x = expression(Temperature~(degree~C)), y = expression(Species~Richness~(""^0*italic(D))), title="B")+
@@ -276,14 +278,15 @@ p8 <- ggplot(data=t1, aes(x=Mean, y=qD, ymin=qD.LCL, ymax=qD.UCL, shape=Season, 
 
 ```{r}
 pv <- round(summary(lm(qD~Mean, data=t2))$coefficients[2, 4], 3)
-r2 <- round(summary(lm(qD~Mean, data=t2))$adj.r.squared, 3)
-label = paste0("P==", pv, "*','~italic(R)^2 ==", r2)
+r2 <- round(summary(lm(qD~Mean, data=t2))$adj.r.squared, 2)
+f <- round(summary(lm(qD~Mean, data=t2))$fstatistic[1], 2)
+label = paste0("italic(F)['1,4'] ==", f, "*','~P==", pv, "*','~italic(R)^2 ==", r2)
 
 p9 <- ggplot(data=t2, aes(x=Mean, y=qD, ymin=qD.LCL, ymax=qD.UCL, shape=Season, colour=Site))+
   geom_point(size=2, stroke=1.5)+
   geom_errorbar()+
   stat_smooth(formula=y~x, method = "glm", aes(group=1), alpha=0.2, colour="gray", linetype=2)+
-  annotate(geom = "text", x = 25, y = 6, hjust = 0, vjust = 1, label = label, parse = TRUE) +
+  annotate(geom = "text", x = 24, y = 6, hjust = 0, vjust = 1, label = label, parse = TRUE) +
   scale_color_viridis_d()+
   scale_shape_manual(values=c(1,19))+
   labs(x = expression(Temperature~(degree~C)), y = expression(Shannon~Diversity~(""^1*italic(D))), title="C")+
@@ -292,17 +295,18 @@ p9 <- ggplot(data=t2, aes(x=Mean, y=qD, ymin=qD.LCL, ymax=qD.UCL, shape=Season, 
 
 ```{r}
 pv <- round(summary(lm(H2~Mean, data=h2))$coefficients[2, 4], 3)
-r2 <- round(summary(lm(H2~Mean, data=h2))$adj.r.squared, 3)
-label = paste0("P==", pv, "*','~italic(R)^2 ==", r2)
+r2 <- round(summary(lm(H2~Mean, data=h2))$adj.r.squared, 2)
+f <- round(summary(lm(H2~Mean, data=h2))$fstatistic[1], 2)
+label = paste0("italic(F)['1,4'] ==", f, "*','~P==", pv, "*','~italic(R)^2 ==", r2)
 
 p10<- ggplot(data=h2, aes(x=Mean, y=H2, ymin=X1, ymax=X2, shape=Season, colour=Site))+
   geom_point(size=2, stroke=1.5)+
   geom_errorbar()+
   stat_smooth(formula=y~x, method = "glm", aes(group=1), alpha=0.2, colour="gray")+
-  annotate(geom = "text", x = 25, y = 0.95, hjust = 0, vjust = 1, label = label, parse = TRUE) +
+  annotate(geom = "text", x = 24.5, y = 0.95, hjust = 0, vjust = 1, label = label, parse = TRUE) +
   scale_color_viridis_d()+
   scale_shape_manual(values=c(1,19))+
-  labs(x = expression(Temperature~(degree~C)), y = "H2 index", title="D")+
+  labs(x = expression(Temperature~(degree~C)), y = "H2' index", title="D")+
   theme_bw()%+replace% large %+replace% theme(legend.position = "none")
 ```
 

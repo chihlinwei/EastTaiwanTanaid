@@ -1,0 +1,124 @@
+---
+title: "Scheirer–Ray–Hare (SRH) test for top five most dominant tanaids"
+author: "Chih-Lin Wei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(readxl)
+library(stringr)
+library(ggplot2)
+library(patchwork)
+library(plyr)
+library(rcompanion)
+library(FSA)
+library(knitr)
+```
+
+# ggplot theme setting
+```{r}
+large <- theme(legend.title = element_text(size=15),
+        legend.text = element_text(size=15),
+        axis.title = element_text(size=15),
+        axis.text = element_text(size=15),
+        strip.text = element_text(size=15))
+
+rotate <- theme(axis.text.x = element_text(angle = 90, hjust=1))
+
+no_strip <- theme(strip.background = element_rect(colour=NA, fill=NA),
+                  strip.text = element_text(colour=NA))
+```
+
+# Preparing tanaid data
+
+```{r}
+ta0 <- read_excel("../Data/Tanaidacea community.xlsx", sheet = 3)
+ta <- ta0[, 1:2]
+# Create factor "Microhabitat"
+ta$Microhabitat <- str_replace(ta0$Microhabitat, " \\s*\\([^\\)]+\\)", "")
+# Create factor "Replicate"
+ta$Replicate <- str_extract(ta0$Microhabitat, "(?<=\\()\\d+(?=\\))")
+ta <- cbind(ta, ta0[,-1:-3])
+# Remove zero rows
+ta <- ta[rowSums(ta0[,-1:-3])!=0, ]
+ta$Site <- factor(ta$Site, levels=c("Shitiping", "Jihuei", "Jialulan"), labels = c("STP", "JH", "JLL"))
+ta$Season <- factor(ta$Season, levels = c("SP", "SU"))
+
+names(ta)[-1:-4] <- c("P. pangcahi", "Cyclopoapseudes sp.", "P. tagopilosus", "S. hansmuelleri", "I. multituberculata", "C. taitungensis", "P. setosa", "A. lenoprimorum","A. pedecerritulus", "T. nuwalianensis", "Z. shitipingensis", "Z. zorro")
+
+ta$Microhabitat <- factor(ta$Microhabitat, 
+                          levels = c("Amansia glomerata", "Asparagopsis sp.", "Asparagopsis taxiformis", "Caulerpa sp.", "Chlorodesmis sp.", "Corallina pilulifera", "Gelidium sp.", "Gravel, sand or silt", "Halimeda sp.", "Hypnea pannosa", "Hypnea sp.", "Jania sp.1", "Jania sp.2", "Mastophora rosea", "Padina sp.", "Plocamium sp.", "Tube of Eunice taoi"), 
+                          labels = c("A. glomerata", "Asparagopsis sp.", "A. taxiformis", "Caulerpa sp.", "Chlorodesmis sp.", "C. pilulifera", "Gelidium sp.", "Gravel, sand, silt", "Halimeda sp.", "H. pannosa", "Hypnea sp.", "Jania sp.1", "Jania sp.2", "M. rosea", "Padina sp.", "Plocamium sp.", "Tube of E. taoi"))
+
+out <- ta
+names(out) <- sub(" ", "", names(out))
+```
+
+# Scheirer–Ray–Hare (SRH) test 
+
+SRH is an extension of the Kruskal–Wallis test, the non-parametric equivalent for one-way analysis of variance (ANOVA)
+
+## C. taitungensis
+
+```{r}
+### Scheirer–Ray–Hare test
+sr <- scheirerRayHare(C.taitungensis ~ Site + Season,
+                data = out)
+### Post-hoc test
+### Dunn test
+d <- dunnTest(C.taitungensis ~ Site, data=out, method="bonferroni")  
+cbind(sr, rbind(d$res, NA)) %>% kable(caption = "Chondrochelia taitungensis")
+```
+
+## S. hansmuelleri
+
+```{r}
+### Scheirer–Ray–Hare test
+sr <- scheirerRayHare(S.hansmuelleri ~ Site + Season,
+                data = out)
+### Post-hoc test
+### Dunn test
+d <- dunnTest(S.hansmuelleri ~ Site, data=out, method="bonferroni")  
+cbind(sr, rbind(d$res, NA)) %>% kable(caption = "Synapseudes hansmuelleri")
+```
+
+## Z. shitipingensis
+
+```{r}
+### Scheirer–Ray–Hare test
+sr <- scheirerRayHare(Z.shitipingensis ~ Site + Season,
+                data = out)
+### Post-hoc test
+### Dunn test
+d <- dunnTest(Z.shitipingensis ~ Site, data=out, method="bonferroni")  
+cbind(sr, rbind(d$res, NA)) %>% kable(caption = "Zeuxo shitipingensis")
+```
+
+## Z. zorro
+
+```{r}
+### Scheirer–Ray–Hare test
+sr <- scheirerRayHare(Z.zorro ~ Site + Season,
+                data = out)
+### Post-hoc test
+### Dunn test
+d <- dunnTest(Z.zorro ~ Site, data=out, method="bonferroni")  
+cbind(sr, rbind(d$res, NA)) %>% kable(caption = "Zeuxo zorro")
+```
+
+## P. setosa
+
+```{r}
+### Scheirer–Ray–Hare test
+sr <- scheirerRayHare(P.setosa ~ Site + Season,
+                data = out)
+### Post-hoc test
+### Dunn test
+d <- dunnTest(P.setosa ~ Site, data=out, method="bonferroni")  
+cbind(sr, rbind(d$res, NA)) %>% kable(caption = "Paraleptochelia setosa")
+```

@@ -1,0 +1,82 @@
+ANOSIM
+Analysis of Similarities
+
+Three-Way - C(AxB)
+
+Resemblance worksheet
+Name: Resem1
+Data type: Similarity
+Selection: All
+
+Factors
+Place	Name	Type	Levels
+A	Season	Unordered	     2
+B	Site	Unordered	     3
+C	Microhabitat	Unordered	    17
+
+Season levels
+SP
+SU
+
+Site levels
+JH
+JLL
+STP
+
+Microhabitat levels
+M. rosea
+A. glomerata
+Jania sp.1
+Jania sp.2
+Tube of E. taoi
+Gravel, sand, silt
+A. taxiformis
+Caulerpa sp.
+Padina sp.
+Chlorodesmis sp.
+Halimeda sp.
+Asparagopsis sp.
+C. pilulifera
+Gelidium sp.
+Plocamium sp.
+Hypnea sp.
+H. pannosa
+
+Tests for differences between unordered Season groups
+(across all Site groups)
+(using Microhabitat groups as samples)
+Global Test
+Sample statistic (Average R): 0.035
+Significance level of sample statistic: 23.5%
+Number of permutations: 999 (Random sample from a large number)
+Number of permuted statistics greater than or equal to Average R: 234
+
+Tests for differences between unordered Site groups
+(across all Season groups)
+(using Microhabitat groups as samples)
+Global Test
+Sample statistic (Average R): 0.6
+Significance level of sample statistic: 0.1%
+Number of permutations: 999 (Random sample from a large number)
+Number of permuted statistics greater than or equal to Average R: 0
+
+Pairwise Tests
+	        R	Significance	    Possible	      Actual	Number >=
+Groups	Statistic	     Level %	Permutations	Permutations	 Observed
+JH, JLL	    0.457	         0.1	     8848840	         999	        0
+JH, STP	    0.548	         0.1	       58212	         999	        0
+JLL, STP	    0.729	         0.1	    24776752	         999	        0
+
+Tests for differences between unordered Microhabitat groups
+(across all Season x Site groups)
+Global Test
+Sample statistic (Average R): 0.305
+Significance level of sample statistic: 0.1%
+Number of permutations: 999 (Random sample from a large number)
+Number of permuted statistics greater than or equal to Average R: 0
+
+Outputs
+Plot: Graph29
+Plot: Graph30
+Plot: Graph31
+

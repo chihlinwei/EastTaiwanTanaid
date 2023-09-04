@@ -207,7 +207,10 @@ man[[5]] <- mantel(vegdist(b[-23,]^0.25), dist(env[-23, "Temperature"]))
 
 evec$mantel_r <- lapply(man, FUN=function(x)x$statistic) %>% unlist
 evec$signif <- lapply(man, FUN=function(x)x$signif) %>% unlist
-evec$pvals <- cut(evec$signif, breaks=c(0, 0.05, 0.1, 1), labels=c("<0.05", "<0.1", "NS")) %>% factor
+#evec$pvals <- cut(evec$signif, breaks=c(0, 0.01, 0.05, 0.1, 1), labels=c("<0.01", "<0.05", "<0.1", "<1")) %>% factor
+evec$pvals <- factor(evec$signif)
+
+print(evec)
 
 # Merge MDS to environmental data frame
 p2 <- ggplot(data=cbind(md$points, fac[-23,]), aes(x=MDS1, y=MDS2))+
@@ -222,8 +225,8 @@ p2 <- ggplot(data=cbind(md$points, fac[-23,]), aes(x=MDS1, y=MDS2))+
   annotate("text", x=1.7, y=1.2, label="B", size=7) +
   scale_shape_manual(values=c(1, 19))+
   scale_color_viridis_d()+
-  scale_linewidth_manual(values=c(1.5, 0.7, 0.5))+
-  scale_linetype_manual(values=c(1, 1, 2))+
+  scale_linewidth_manual(values=c(2, 1, 0.5, 0.5))+
+  scale_linetype_manual(values=c(1, 1, 1, 2))+
   geom_label_repel(data=blab, aes(x=MDS1, y=MDS2, label=label), colour="black", 
              fill=gray(1, 0.6), size=4, label.padding = unit(0.25, "lines"), parse=T)+
   geom_label_repel(data=evec, aes(x=MDS1*1.2, y=MDS2*1.2, label=label), colour="red", 
