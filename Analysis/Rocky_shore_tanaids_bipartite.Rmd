@@ -200,15 +200,15 @@ b_fun <- function(layout){
   theme(axis.text.y = element_text(face="italic"), panel.background = element_rect(fill = NA, color = NA)) 
 }
 
-p1 <- b_fun(create_layout(sp_web$STP, "bipartite")) + labs(tag = "A", caption = "(STP-SP)") 
+p1 <- b_fun(create_layout(sp_web$STP, "bipartite")) + labs(tag = "a", caption = "(STP-SP)") 
 # For some reason, I need to add a "blank" value to make create_layout working.
-p2 <- b_fun(create_layout(cbind(su_web$STP, 0), "bipartite")[-11,]) + labs(tag = "B", caption = "(STP-SU)")
+p2 <- b_fun(create_layout(cbind(su_web$STP, 0), "bipartite")[-11,]) + labs(tag = "b", caption = "(STP-SU)")
 
-p3 <- b_fun(create_layout(sp_web$JH, "bipartite")) + labs(tag = "C", caption = "(JH-SP)") 
-p4 <- b_fun(create_layout(su_web$JH, "bipartite")) + labs(tag = "D", caption = "(JH-SU)") 
+p3 <- b_fun(create_layout(sp_web$JH, "bipartite")) + labs(tag = "c", caption = "(JH-SP)") 
+p4 <- b_fun(create_layout(su_web$JH, "bipartite")) + labs(tag = "d", caption = "(JH-SU)") 
 
-p5 <- b_fun(create_layout(sp_web$JLL, "bipartite")) + labs(tag = "E", caption = "(JLL-SP)") 
-p6 <- b_fun(create_layout(su_web$JLL, "bipartite")) + labs(tag = "F", caption = "(JLL-SU)") 
+p5 <- b_fun(create_layout(sp_web$JLL, "bipartite")) + labs(tag = "e", caption = "(JLL-SP)") 
+p6 <- b_fun(create_layout(su_web$JLL, "bipartite")) + labs(tag = "f", caption = "(JLL-SU)") 
 ```
 
 ```{r, fig.height=12, fig.width=12}
@@ -231,29 +231,29 @@ su_d <- lapply(su_web, FUN=function(x){
 
 p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Abundance))+
   geom_bar(stat="identity")+
-  labs(x="", y="Relative\nabundance", tag = "A", caption = "(STP-SP)")+
+  labs(x="", y="Relative\nabundance", tag = "a", caption = "(STP-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Abundance))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  labs(x="", y="", tag = "b", caption = "(STP-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Abundance))+
   geom_bar(stat="identity")+
-  labs(x="", y="Relative\nabundance", tag = "C", caption = "(JH-SP)")+
+  labs(x="", y="Relative\nabundance", tag = "c", caption = "(JH-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Abundance))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  labs(x="", y="", tag = "d", caption = "(JH-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Abundance))+
   geom_bar(stat="identity")+
-  labs(x="", y="Relative\nabundance", tag = "C", caption = "(JLL-SP)")+
+  labs(x="", y="Relative\nabundance", tag = "e", caption = "(JLL-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Abundance))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  labs(x="", y="", tag = "f", caption = "(JLL-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 ```
 
@@ -277,29 +277,29 @@ su_d <- lapply(su_web, FUN=function(x){
 
 p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Abundance))+
   geom_bar(stat="identity")+
-  labs(x="", y="Relative\nabundance", tag = "A", caption = "(STP-SP)")+
+  labs(x="", y="Relative\nabundance", tag = "a", caption = "(STP-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Abundance))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  labs(x="", y="", tag = "b", caption = "(STP-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Abundance))+
   geom_bar(stat="identity")+
-  labs(x="", y="Relative\nabundance", tag = "C", caption = "(JH-SP)")+
+  labs(x="", y="Relative\nabundance", tag = "c", caption = "(JH-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Abundance))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  labs(x="", y="", tag = "d", caption = "(JH-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Abundance))+
   geom_bar(stat="identity")+
-  labs(x="", y="Relative\nabundance", tag = "C", caption = "(JLL-SP)")+
+  labs(x="", y="Relative\nabundance", tag = "e", caption = "(JLL-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Abundance))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  labs(x="", y="", tag = "f", caption = "(JLL-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 ```
 
@@ -323,29 +323,29 @@ su_d <- lapply(su_web, FUN=function(x){
 
 p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Link))+
   geom_bar(stat="identity")+
-  labs(x="", y="No. of link", tag = "A", caption = "(STP-SP)")+
+  labs(x="", y="No. of link", tag = "a", caption = "(STP-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Link))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  labs(x="", y="", tag = "b", caption = "(STP-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Link))+
   geom_bar(stat="identity")+
-  labs(x="", y="No. of link", tag = "C", caption = "(JH-SP)")+
+  labs(x="", y="No. of link", tag = "c", caption = "(JH-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Link))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  labs(x="", y="", tag = "d", caption = "(JH-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Link))+
   geom_bar(stat="identity")+
-  labs(x="", y="No. of link", tag = "C", caption = "(JLL-SP)")+
+  labs(x="", y="No. of link", tag = "e", caption = "(JLL-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Link))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  labs(x="", y="", tag = "f", caption = "(JLL-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 ```
 
@@ -369,29 +369,29 @@ su_d <- lapply(su_web, FUN=function(x){
 
 p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Link))+
   geom_bar(stat="identity")+
-  labs(x="", y="No. of link", tag = "A", caption = "(STP-SP)")+
+  labs(x="", y="No. of link", tag = "a", caption = "(STP-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Link))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  labs(x="", y="", tag = "b", caption = "(STP-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Link))+
   geom_bar(stat="identity")+
-  labs(x="", y="No. of link", tag = "C", caption = "(JH-SP)")+
+  labs(x="", y="No. of link", tag = "c", caption = "(JH-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Link))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  labs(x="", y="", tag = "d", caption = "(JH-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Link))+
   geom_bar(stat="identity")+
-  labs(x="", y="No. of link", tag = "C", caption = "(JLL-SP)")+
+  labs(x="", y="No. of link", tag = "e", caption = "(JLL-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Link))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  labs(x="", y="", tag = "f", caption = "(JLL-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 ```
 
@@ -415,29 +415,29 @@ su_d <- lapply(su_web, FUN=function(x){
 
 p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Degree", tag = "A", caption = "(STP-SP)")+
+  labs(x="", y="Degree", tag = "a", caption = "(STP-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  labs(x="", y="", tag = "b", caption = "(STP-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Degree", tag = "C", caption = "(JH-SP)")+
+  labs(x="", y="Degree", tag = "c", caption = "(JH-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  labs(x="", y="", tag = "d", caption = "(JH-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Degree", tag = "C", caption = "(JLL-SP)")+
+  labs(x="", y="Degree", tag = "e", caption = "(JLL-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  labs(x="", y="", tag = "f", caption = "(JLL-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 ```
 
@@ -461,29 +461,29 @@ su_d <- lapply(su_web, FUN=function(x){
 
 p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Degree", tag = "A", caption = "(STP-SP)")+
+  labs(x="", y="Degree", tag = "a", caption = "(STP-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  labs(x="", y="", tag = "b", caption = "(STP-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Degree", tag = "C", caption = "(JH-SP)")+
+  labs(x="", y="Degree", tag = "c", caption = "(JH-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  labs(x="", y="", tag = "d", caption = "(JH-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Degree", tag = "C", caption = "(JLL-SP)")+
+  labs(x="", y="Degree", tag = "e", caption = "(JLL-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  labs(x="", y="", tag = "f", caption = "(JLL-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 ```
 
@@ -507,29 +507,29 @@ su_d <- lapply(su_web, FUN=function(x){
 
 p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Normalized\nDegree", tag = "A", caption = "(STP-SP)")+
+  labs(x="", y="Normalized\nDegree", tag = "a", caption = "(STP-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  labs(x="", y="", tag = "b", caption = "(STP-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Normalized\nDegree", tag = "C", caption = "(JH-SP)")+
+  labs(x="", y="Normalized\nDegree", tag = "c", caption = "(JH-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  labs(x="", y="", tag = "d", caption = "(JH-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Normalized\nDegree", tag = "C", caption = "(JLL-SP)")+
+  labs(x="", y="Normalized\nDegree", tag = "e", caption = "(JLL-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  labs(x="", y="", tag = "f", caption = "(JLL-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 ```
 
@@ -553,29 +553,29 @@ su_d <- lapply(su_web, FUN=function(x){
 
 p1 <- ggplot(data.frame(sp_d[[1]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Normalized\nDegree", tag = "A", caption = "(STP-SP)")+
+  labs(x="", y="Normalized\nDegree", tag = "a", caption = "(STP-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p2 <- ggplot(data.frame(su_d[[1]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "B", caption = "(STP-SU)")+
+  labs(x="", y="", tag = "b", caption = "(STP-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p3 <- ggplot(data.frame(sp_d[[2]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Normalized\nDegree", tag = "C", caption = "(JH-SP)")+
+  labs(x="", y="Normalized\nDegree", tag = "c", caption = "(JH-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p4 <- ggplot(data.frame(su_d[[2]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JH-SU)")+
+  labs(x="", y="", tag = "d", caption = "(JH-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 
 p5 <- ggplot(data.frame(sp_d[[3]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Normalized\nDegree", tag = "C", caption = "(JLL-SP)")+
+  labs(x="", y="Normalized\nDegree", tag = "e", caption = "(JLL-SP)")+
   theme_bw() %+replace% rotate %+replace% large
 p6 <- ggplot(data.frame(su_d[[3]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="", tag = "D", caption = "(JLL-SU)")+
+  labs(x="", y="", tag = "f", caption = "(JLL-SU)")+
   theme_bw() %+replace% rotate %+replace% large
 ```
 
@@ -602,7 +602,7 @@ d <- lapply(web, FUN=function(x){
 
 p1 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Abundance))+
   geom_bar(stat="identity")+
-  labs(x="", y="Relative abundance", tag = "A")+
+  labs(x="", y="Relative abundance", tag = "a")+
   theme_bw() %+replace% rotate %+replace% large
 
 d <- lapply(web, FUN=function(x){
@@ -614,7 +614,7 @@ d <- lapply(web, FUN=function(x){
 
 p2 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Link))+
   geom_bar(stat="identity")+
-  labs(x="", y="No. of link", tag = "B")+
+  labs(x="", y="No. of link", tag = "b")+
   theme_bw() %+replace% rotate %+replace% large
 
 d <- lapply(web, FUN=function(x){
@@ -626,7 +626,7 @@ d <- lapply(web, FUN=function(x){
 
 p3 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Degree", tag = "C")+
+  labs(x="", y="Degree", tag = "c")+
   theme_bw() %+replace% rotate %+replace% large
 
 d <- lapply(web, FUN=function(x){
@@ -638,7 +638,7 @@ d <- lapply(web, FUN=function(x){
 
 p4 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Normalized Degree", tag = "D")+
+  labs(x="", y="Normalized Degree", tag = "d")+
   theme_bw() %+replace% rotate %+replace% large
 ```
 
@@ -656,7 +656,7 @@ d <- lapply(web, FUN=function(x){
 
 p1 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Abundance))+
   geom_bar(stat="identity")+
-  labs(x="", y="Relative abundance", tag = "A")+
+  labs(x="", y="Relative abundance", tag = "a")+
   theme_bw() %+replace% rotate %+replace% large
 
 d <- lapply(web, FUN=function(x){
@@ -668,7 +668,7 @@ d <- lapply(web, FUN=function(x){
 
 p2 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Link))+
   geom_bar(stat="identity")+
-  labs(x="", y="No. of link", tag = "B")+
+  labs(x="", y="No. of link", tag = "b")+
   theme_bw() %+replace% rotate %+replace% large
 
 d <- lapply(web, FUN=function(x){
@@ -680,7 +680,7 @@ d <- lapply(web, FUN=function(x){
 
 p3 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Degree", tag = "C")+
+  labs(x="", y="Degree", tag = "c")+
   theme_bw() %+replace% rotate %+replace% large
 
 d <- lapply(web, FUN=function(x){
@@ -692,7 +692,7 @@ d <- lapply(web, FUN=function(x){
 
 p4 <- ggplot(data.frame(d[[1]]),aes(x=Species, y=Degree))+
   geom_bar(stat="identity")+
-  labs(x="", y="Normalized Degree", tag = "D")+
+  labs(x="", y="Normalized Degree", tag = "d")+
   theme_bw() %+replace% rotate %+replace% large
 ```
 

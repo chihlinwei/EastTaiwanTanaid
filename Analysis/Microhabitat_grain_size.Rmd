@@ -75,7 +75,7 @@ out <- out[!out$value==0, ]
 p1 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
   geom_tile(colour="black")+
   scale_fill_viridis_c(na.value="white")+
-  labs(x = "", y="Microhabitat", fill="No.", tag="A", title="Replication")+
+  labs(x = "", y="Microhabitat", fill="No.", tag="a", title="Replication")+
   theme(axis.text.y = element_text(face = "italic")) 
 ```
 
@@ -111,7 +111,7 @@ out <- out[!out$value==0, ]
 c0 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=log10(value)))+
   geom_tile(colour="black")+
   scale_fill_viridis_c(na.value="white", breaks = c(-1, 0, 1, 2), labels=c(0.1, 1, 10, 100))+
-  labs(x = "", y="", fill="g", tag="B", title="Sediment weight (g)")+
+  labs(x = "", y="", fill="g", tag="b", title="Sediment weight (g)")+
   theme(axis.text.y = element_text(face = "italic")) 
 
 # Sit2Clay
@@ -124,7 +124,7 @@ out <- out[!out$value==0, ]
 c1 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
   geom_tile(colour="black")+
   scale_fill_viridis_c(na.value="white")+
-  labs(x = "", y="Microhabitat", fill="%", tag="C", title="Silt to clay")+
+  labs(x = "", y="Microhabitat", fill="%", tag="c", title="Silt to clay")+
   theme(axis.text.y = element_text(face = "italic")) 
 
 # Fine2VeryFine
@@ -137,7 +137,7 @@ out <- out[!out$value==0, ]
 c2 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
   geom_tile(colour="black")+
   scale_fill_viridis_c(na.value="white")+
-  labs(x = "", y="", fill="%", tag="D", title="Fine to very fine sand")+
+  labs(x = "", y="", fill="%", tag="d", title="Fine to very fine sand")+
   theme(axis.text.y = element_text(face = "italic")) 
 
 # Medium
@@ -150,7 +150,7 @@ out <- out[!out$value==0, ]
 c3 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
   geom_tile(colour="black")+
   scale_fill_viridis_c(na.value="white")+
-  labs(x = "Site-Season", y="Microhabitat", fill="%", tag="E", title="Medium sand")+
+  labs(x = "Site-Season", y="Microhabitat", fill="%", tag="e", title="Medium sand")+
   theme(axis.text.y = element_text(face = "italic"))
 
 
@@ -164,7 +164,7 @@ out <- out[!out$value==0, ]
 c4 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
   geom_tile(colour="black")+
   scale_fill_viridis_c(na.value="white")+
-  labs(x = "Site-Season", y="", fill="%", tag="F", title="Coarse to very coarse sand")+
+  labs(x = "Site-Season", y="", fill="%", tag="f", title="Coarse to very coarse sand")+
   theme(axis.text.y = element_text(face = "italic"))
 ```
 

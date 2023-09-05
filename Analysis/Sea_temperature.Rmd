@@ -97,7 +97,7 @@ p1 <- ggplot(data=out,aes(x=Time, y=Mean, ymin=Minimum, ymax=Maximum, group=grp,
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
   #facet_wrap(~StationNameEN, ncol=1)+
-  labs(x="Month", y=expression(Monthly~mean~temperature~(degree~C)), colour="Buoy", fill="Buoy", title="A")+
+  labs(x="Month", y=expression(Monthly~mean~temperature~(degree~C)), colour="Buoy", fill="Buoy", title="a")+
   xlim(as.POSIXct(paste(2011, "06", "01", sep="-")), as.POSIXct(paste(2013, "07", "31", sep="-")))+
   theme_bw()  %+replace% large %+replace% theme(axis.text.x = element_blank(), axis.title.x = element_blank())
 ```
@@ -112,7 +112,7 @@ p2 <- ggplot(data=out,aes(x=Time, y=Mean, ymin=Minimum, ymax=Maximum, group=grp,
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
   facet_wrap(~StationNameEN, ncol=1)+
-  labs(x="Month", y=expression(Monthly~mean~temperature~(degree~C)), colour="Buoy", fill="Buoy", title="B")+
+  labs(x="Month", y=expression(Monthly~mean~temperature~(degree~C)), colour="Buoy", fill="Buoy", title="b")+
   xlim(as.POSIXct(paste(2011, "06", "01", sep="-")), as.POSIXct(paste(2013, "07", "31", sep="-")))+
   theme_bw()  %+replace% large %+replace% no_strip
 ```

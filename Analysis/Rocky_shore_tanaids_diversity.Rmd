@@ -255,7 +255,7 @@ p7 <- ggplot(data=t0, aes(x=Mean, y=S.obs, shape=Season, colour=Site))+
   annotate(geom = "text", x = 24, y = 12.5, hjust = 0, vjust = 1, label = label, parse = TRUE) +
   scale_color_viridis_d()+
   scale_shape_manual(values=c(1,19))+
-  labs(x = expression(Temperature~(degree~C)), y = "Numbers of Species", title="A")+
+  labs(x = expression(Temperature~(degree~C)), y = "Numbers of Species", title="a")+
   theme_bw() %+replace% large %+replace% theme(axis.text.x = element_blank(), axis.title.x = element_blank(), legend.position = "none")
 ```
 
@@ -272,7 +272,7 @@ p8 <- ggplot(data=t1, aes(x=Mean, y=qD, ymin=qD.LCL, ymax=qD.UCL, shape=Season, 
   annotate(geom = "text", x = 24.5, y = 22, hjust = 0, vjust = 1, label = label, parse = TRUE) +
   scale_color_viridis_d()+
   scale_shape_manual(values=c(1,19))+
-  labs(x = expression(Temperature~(degree~C)), y = expression(Species~Richness~(""^0*italic(D))), title="B")+
+  labs(x = expression(Temperature~(degree~C)), y = expression(Species~Richness~(""^0*italic(D))), title="b")+
   theme_bw() %+replace% large %+replace% theme(axis.text.x = element_blank(), axis.title.x = element_blank())
 ```
 
@@ -289,7 +289,7 @@ p9 <- ggplot(data=t2, aes(x=Mean, y=qD, ymin=qD.LCL, ymax=qD.UCL, shape=Season, 
   annotate(geom = "text", x = 24, y = 6, hjust = 0, vjust = 1, label = label, parse = TRUE) +
   scale_color_viridis_d()+
   scale_shape_manual(values=c(1,19))+
-  labs(x = expression(Temperature~(degree~C)), y = expression(Shannon~Diversity~(""^1*italic(D))), title="C")+
+  labs(x = expression(Temperature~(degree~C)), y = expression(Shannon~Diversity~(""^1*italic(D))), title="c")+
   theme_bw()%+replace% large %+replace% theme(legend.position = "none")
 ```
 
@@ -306,7 +306,7 @@ p10<- ggplot(data=h2, aes(x=Mean, y=H2, ymin=X1, ymax=X2, shape=Season, colour=S
   annotate(geom = "text", x = 24.5, y = 0.95, hjust = 0, vjust = 1, label = label, parse = TRUE) +
   scale_color_viridis_d()+
   scale_shape_manual(values=c(1,19))+
-  labs(x = expression(Temperature~(degree~C)), y = "H2' index", title="D")+
+  labs(x = expression(Temperature~(degree~C)), y = "H2' index", title="d")+
   theme_bw()%+replace% large %+replace% theme(legend.position = "none")
 ```
 
