@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, dev='jpeg', dpi = 1200)
 ```
 
 ```{r}
@@ -62,6 +62,5 @@ mp <- ggplot(dat=tw)+
 ```{r, fig.width=6, fig.height=6}
 north2(mp, x=0.4, scale=0.15)
 ```
-
 
 

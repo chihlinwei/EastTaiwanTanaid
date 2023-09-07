@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, dev='jpeg', dpi = 600)
 ```
 
 ```{r}
@@ -171,3 +171,4 @@ c4 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
 ```{r, fig.width=12, fig.height=10}
 (p1+c0)/(c1+c2)/(c3+c4)
 ```
+
