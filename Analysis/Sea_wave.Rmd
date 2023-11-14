@@ -1,0 +1,203 @@
+---
+title: "Central Weather Administration Wave Data"
+author: "Chih-Lin Wei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, dev='jpeg', dpi = 600)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(patchwork)
+
+large <- theme(legend.title = element_text(size=15),
+        legend.text = element_text(size=15),
+        axis.title = element_text(size=15),
+        axis.text = element_text(size=15),
+        strip.text = element_text(size=15))
+
+rotate <- theme(axis.text.x = element_text(angle = 90, hjust=1))
+
+no_strip <- theme(strip.background = element_rect(colour=NA, fill=NA),
+                  strip.text = element_text(colour=NA))
+```
+
+# Central Weather Administration Buoy Data
+[海象資料下載](https://ocean.cwb.gov.tw/V2/data_interface/datasets)
+```{r}
+# Hualien buoy
+hua <- read_excel("../Data//2012_46699A_Hualien buoy_wave.xlsx", skip=9)
+hua$yyyymmddhhmi <- strptime(hua$yyyymmddhhmi, format="%Y%m%d%H%M") %>% as.POSIXct
+hua$Header <- "Hualien buoy"
+
+# Chenggong
+che <- read_excel("../Data//2012_46761F_Chenggong_wave.xlsx", skip=15)
+che$yyyymmddhhmi <- strptime(che$yyyymmddhhmi, format="%Y%m%d%H%M") %>% as.POSIXct
+che$Header <- "Chenggong"
+names(che)[4:5] <- c("H", "T")
+#che <- che[che$Dif!=0,]
+out <- rbind(hua[, c(1:4, 6, 8:11)], che)
+names(out)[1] <- "Buoy"
+out$Buoy <- factor(out$Buoy, levels=c("Hualien buoy", "Chenggong"))
+
+# Typhoon impact periods
+rec <- rbind(c("2012-07-30 00:00", "2012-08-03 23:59"), 
+      c("2012-08-05 00:00", "2012-08-07 23:59"),
+      c("2012-08-14 12:00", "2012-08-16 23:59"),
+      c("2012-08-21 00:00", "2012-08-30 23:59")) %>% as.data.frame
+names(rec) <- c("xmin", "xmax")
+rec$xmin <- as.POSIXct(rec$xmin)
+rec$xmax <- as.POSIXct(rec$xmax)
+Typhoon <- factor(c("Saola", "Haikui", "Kai-tak", "Tembin"), levels=c("Saola", "Haikui", "Kai-tak", "Tembin"))
+rec <- cbind(rec, Typhoon)
+```
+
+```{r, fig.width=8, fig.height=6}
+ggplot()+
+  geom_rect(data=rec, aes(xmin = xmin, xmax = xmax, ymin=0, ymax=Inf, fill=Typhoon), alpha=0.5)+
+  geom_rect(data=rec, aes(xmin = as.POSIXct("2012-08-18 08:00"), xmax = as.POSIXct("2012-08-20 17:00"), ymin=0, ymax=Inf), fill="transparent", colour="red", linetype=2)+
+  geom_path(data = out, aes(x=yyyymmddhhmi, y=H/100, group=Grp))+
+  facet_wrap(~Buoy, ncol=1, scales="free")+
+  labs(x="", y="Significant wave height (m)")+
+  scale_x_datetime(limits = as.POSIXct(c("2012-07-28 00:00", "2012-08-31 23:59")), expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_fill_viridis_d()+
+  scale_colour_viridis_d()+
+  theme_bw() 
+```
+
+```{r, fig.width=8, fig.height=6}
+ggplot()+
+  geom_rect(data=rec, aes(xmin = xmin, xmax = xmax, ymin=0, ymax=Inf, fill=Typhoon), alpha=0.5)+
+  geom_path(data = out, aes(x=yyyymmddhhmi, y=600/T, group=Grp))+
+  geom_rect(data=rec, aes(xmin = as.POSIXct("2012-08-18 08:00"), xmax = as.POSIXct("2012-08-20 17:00"), ymin=0, ymax=Inf), fill="transparent", colour="red", linetype=2)+
+  facet_wrap(~Buoy, ncol=1)+
+  labs(x="", y=expression(Wave~Frequency~(min^-1)))+
+  scale_x_datetime(limits = as.POSIXct(c("2012-07-28 00:00", "2012-08-31 23:59")), expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_fill_viridis_d()+
+  scale_colour_viridis_d()+
+  theme_bw() 
+```
+
+# Typhoon Soala
+
+```{r, fig.width=8, fig.height=6}
+# Wave height >= 2.5 m
+dif <- function(x) max(x)-min(x)
+# Hualien buoy
+# Persist large wave
+subset(hua, yyyymmddhhmi<=as.POSIXct("2012-08-04") & yyyymmddhhmi>=as.POSIXct("2012-07-30") & H>=250)$yyyymmddhhmi %>% dif
+# Wave frequency 
+(600/subset(hua, yyyymmddhhmi<=as.POSIXct("2012-08-04") & yyyymmddhhmi>=as.POSIXct("2012-07-30") & H>=250)$T) %>% mean
+(600/subset(hua, yyyymmddhhmi<=as.POSIXct("2012-08-04") & yyyymmddhhmi>=as.POSIXct("2012-07-30") & H>=250)$T) %>% sd
+
+# Chenggong buoy
+# Persist large wave
+subset(che, yyyymmddhhmi<=as.POSIXct("2012-08-04") & yyyymmddhhmi>=as.POSIXct("2012-07-30") & H>=250)$yyyymmddhhmi %>% dif
+# Wave frequency 
+(600/subset(che, yyyymmddhhmi<=as.POSIXct("2012-08-04") & yyyymmddhhmi>=as.POSIXct("2012-07-30") & H>=250)$T) %>% mean
+(600/subset(che, yyyymmddhhmi<=as.POSIXct("2012-08-04") & yyyymmddhhmi>=as.POSIXct("2012-07-30") & H>=250)$T) %>% sd
+
+limits <- subset(out, yyyymmddhhmi<=as.POSIXct("2012-08-04") & yyyymmddhhmi>=as.POSIXct("2012-07-30") & H>=250)$yyyymmddhhmi %>% range
+
+ggplot()+
+  geom_rect(data=rec, aes(xmin = xmin, xmax = xmax, ymin=0, ymax=Inf, fill=Typhoon), alpha=0.5)+
+  geom_rect(data=rec, aes(xmin = as.POSIXct("2012-08-18 08:00"), xmax = as.POSIXct("2012-08-20 17:00"), ymin=0, ymax=Inf), fill="transparent", colour="red", linetype=2)+
+  geom_path(data = out, aes(x=yyyymmddhhmi, y=H/100, group=Grp))+
+  facet_wrap(~Buoy, ncol=1, scales="free")+
+  labs(x="", y="Significant wave height (m)")+
+  scale_x_datetime(limits = limits, expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_fill_viridis_d()+
+  scale_colour_viridis_d()+
+  theme_bw() 
+
+ggplot()+
+  geom_rect(data=rec, aes(xmin = xmin, xmax = xmax, ymin=0, ymax=Inf, fill=Typhoon), alpha=0.5)+
+  geom_path(data = out, aes(x=yyyymmddhhmi, y=600/T, group=Grp))+
+  geom_rect(data=rec, aes(xmin = as.POSIXct("2012-08-18 08:00"), xmax = as.POSIXct("2012-08-20 17:00"), ymin=0, ymax=Inf), fill="transparent", colour="red", linetype=2)+
+  facet_wrap(~Buoy, ncol=1)+
+  labs(x="", y=expression(Wave~Frequency~(min^-1)))+
+  scale_x_datetime(limits = limits, expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_fill_viridis_d()+
+  scale_colour_viridis_d()+
+  theme_bw() 
+```
+
+# Typhoon Haikui
+
+```{r, fig.width=8, fig.height=6}
+# Wave height >= 1.5 m
+# Hualien buoy
+# medium wave (h)
+subset(hua, yyyymmddhhmi<=as.POSIXct("2012-08-07 23:59") & yyyymmddhhmi>=as.POSIXct("2012-08-05 00:00") & H>=150)$H %>% length/subset(hua, yyyymmddhhmi<=as.POSIXct("2012-08-08 23:59") & yyyymmddhhmi>=as.POSIXct("2012-08-05 00:00"))$H %>% length * 72
+
+# Chenggong buoy
+# medium wave (h)
+subset(che, yyyymmddhhmi<=as.POSIXct("2012-08-07 23:59") & yyyymmddhhmi>=as.POSIXct("2012-08-05 00:00") & H>=150)$H %>% length/subset(che, yyyymmddhhmi<=as.POSIXct("2012-08-08 23:59") & yyyymmddhhmi>=as.POSIXct("2012-08-05 00:00"))$H %>% length * 72
+
+ggplot()+
+  geom_path(data = subset(out, yyyymmddhhmi<=as.POSIXct("2012-08-07 23:59") & yyyymmddhhmi>=as.POSIXct("2012-08-05 00:00")), aes(x=yyyymmddhhmi, y=H/100, group=Grp))+
+  facet_wrap(~Buoy, ncol=1, scales="free")+
+  labs(x="", y="Significant wave height (m)")+
+  scale_x_datetime(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_fill_viridis_d()+
+  scale_colour_viridis_d()+
+  theme_bw() 
+
+ggplot()+
+  geom_path(data = subset(out, yyyymmddhhmi<=as.POSIXct("2012-08-07 23:59") & yyyymmddhhmi>=as.POSIXct("2012-08-05 00:00")), aes(x=yyyymmddhhmi, y=600/T, group=Grp))+
+  facet_wrap(~Buoy, ncol=1)+
+  labs(x="", y=expression(Wave~Frequency~(min^-1)))+
+  scale_x_datetime(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_fill_viridis_d()+
+  scale_colour_viridis_d()+
+  theme_bw() 
+```
+
+
+# Typhoon Kai-tak
+
+```{r, fig.width=8, fig.height=6}
+# Wave height >= 1.5 m
+# Hualien buoy
+
+# small wave (h)
+subset(hua, yyyymmddhhmi<=as.POSIXct("2012-08-16 23:59") & yyyymmddhhmi>=as.POSIXct("2012-08-14 12:00") & H>=100)$H %>% length/subset(hua, yyyymmddhhmi<=as.POSIXct("2012-08-17 23:59") & yyyymmddhhmi>=as.POSIXct("2012-08-14 00:00"))$H %>% length *60
+
+# Chenggong buoy
+# medium wave (h)
+subset(che, yyyymmddhhmi<=as.POSIXct("2012-08-16 23:59") & yyyymmddhhmi>=as.POSIXct("2012-08-14 12:00") & H>=150)$H %>% length/subset(che, yyyymmddhhmi<=as.POSIXct("2012-08-17 23:59") & yyyymmddhhmi>=as.POSIXct("2012-08-14 00:00"))$H %>% length *60
+
+subset(che, yyyymmddhhmi<=as.POSIXct("2012-08-16 23:59") & yyyymmddhhmi>=as.POSIXct("2012-08-14 12:00") & H>=100)$H %>% length/subset(che, yyyymmddhhmi<=as.POSIXct("2012-08-17 23:59") & yyyymmddhhmi>=as.POSIXct("2012-08-14 00:00"))$H %>% length *60
+
+ggplot()+
+  geom_path(data = subset(out, yyyymmddhhmi<=as.POSIXct("2012-08-16 23:59") & yyyymmddhhmi>=as.POSIXct("2012-08-14 12:00")), aes(x=yyyymmddhhmi, y=H/100, group=Grp))+
+  facet_wrap(~Buoy, ncol=1, scales="free")+
+  labs(x="", y="Significant wave height (m)")+
+  scale_x_datetime(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_fill_viridis_d()+
+  scale_colour_viridis_d()+
+  theme_bw() 
+
+ggplot()+
+  geom_path(data = subset(out, yyyymmddhhmi<=as.POSIXct("2012-08-16 23:59") & yyyymmddhhmi>=as.POSIXct("2012-08-14 12:00")), aes(x=yyyymmddhhmi, y=600/T, group=Grp))+
+  facet_wrap(~Buoy, ncol=1)+
+  labs(x="", y=expression(Wave~Frequency~(min^-1)))+
+  scale_x_datetime(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_fill_viridis_d()+
+  scale_colour_viridis_d()+
+  theme_bw() 
+```
+

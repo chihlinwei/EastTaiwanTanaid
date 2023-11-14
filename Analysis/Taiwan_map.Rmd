@@ -17,9 +17,12 @@ library(ggrepel)
 library(ggsn)
 library(fields)
 library(knitr)
+library(readxl)
+library(geosphere)
 
 tw <- importGSHHS("../Data/gshhs_f.b", xlim=c(119, 123), ylim=c(21, 26))
-
+saola <-  read_excel("../Data/Typhoon Saola_best track.xlsx", sheet = 1) %>% as.data.frame
+names(saola) <- c("Time", "Lat", "Lon", "Pressure", "Speed", "MaxSustaWwind", "MaxWindGust", "Radius30", "Radius50")
 
 Shitiping <- c(23+28.96/60, 121+30.78/60)
 Jihuei <- c(23+6.86/60, 121+24.18/60)
@@ -36,7 +39,7 @@ site$Site <- factor(site$Site, levels=c("Shitiping", "Jihuei", "Jialulan"), labe
 buoy <- rbind(Hualien, Chenggong, Taitung)%>%as.data.frame
 buoy <- cbind(row.names(buoy), buoy)
 names(buoy) <- c("Site", "Y", "X")
-buoy$Site <- factor(buoy$Site, levels=c("Hualien", "Chenggong", "Taitung"), labels=c("Hualien bouy", "Chenggong", "Taitung bouy"))
+buoy$Site <- factor(buoy$Site, levels=c("Hualien", "Chenggong", "Taitung"), labels=c("Hualien buoy", "Chenggong", "Taitung buoy"))
 
 # Distance in kilometer
 d <- rdist.earth(site[, 3:2], buoy[, 3:2], miles = FALSE)
@@ -50,12 +53,24 @@ mp <- ggplot(dat=tw)+
   geom_path(data=tw, aes(x=X, y=Y, group=PID))+
   geom_point(data=site, aes(x=X, y=Y), size=4)+
   geom_point(data=buoy, aes(x=X, y=Y), fill="white", pch=21, size=3)+
+  geom_point(data=saola, aes(x=Lon, y=Lat), size=3, colour="blue")+
+  geom_path(data=saola, aes(x=Lon, y=Lat), colour="blue")+
+  geom_path(data=destPoint(c(122.2, 24.1), 1:360, 220000) %>% as.data.frame, aes(x=lon,y=lat), linetype=2, colour="blue")+
+  annotate(geom = "text", x = 122.25, y = 22.11346, label = "15.4 m/s", vjust=1.2, size=3, colour="blue")+
+  geom_path(data=destPoint(c(122.2, 24.1), 1:360, 80000) %>% as.data.frame, aes(x=lon,y=lat), linetype=2, colour="blue")+
+  annotate(geom = "text", x = 122.25, y = 23.37768, label = "25.7 m/s", vjust=1.2, size=3, colour="blue")+
+  annotate(geom = "text", x = 121.5, y = 23.9, label = "8/2 05:00", hjust=1.2, vjust=1, size=3, colour="blue")+
+  annotate(geom = "text", x = 121.8, y = 24, label = "8/2 08:00", hjust=-0.2, vjust=1, size=3, colour="blue")+
+  annotate(geom = "text", x = 122, y = 24.6, label = "8/2 11:00", hjust=-0.2, vjust=-0.5, size=3, colour="blue")+
+  annotate(geom = "text", x = 122, y = 25, label = "8/2 14:00", hjust=-0.2, vjust=-0.5, size=3, colour="blue")+
+  annotate(geom = "text", x = 121.8, y = 25.4, label = "8/2 17:00", hjust=-0.2, vjust=-0.5, size=3, colour="blue")+
   geom_text(data=site, aes(x=X, y=Y, label=Site), hjust=-0.2)+
   geom_text(data=buoy, aes(x=X, y=Y, label=Site), hjust=1.2, size=3)+
   annotate(geom = "text", x = 120, y = 24.5, label = "Taiwan", size=8)+
+  annotate(geom = "text", x = 122.2, y = 24.1, label = "8/2 02:00", hjust=-0.2, vjust=-0.5, size=3, colour="blue")+
   labs(x="", y="")+
   scale_color_viridis_d()+
-  coord_map(xlim=c(119.2, 122.5), ylim=c(21.9, 25.2))+
+  coord_map(xlim=c(119.2, 122.5), ylim=c(21.9, 25.4))+
   theme_bw() %+replace% theme(legend.position = "none")
 ```
 

@@ -24,6 +24,8 @@ library(ggrepel)
 library(rjson)
 library(car)
 library(plyr)
+library(pheatmap)
+library(RColorBrewer)
 ```
 
 # ggplot theme setting
@@ -279,6 +281,41 @@ ggplot(data=md, aes(x=MDS1, y=MDS2, colour=Microhabitat, shape=Microhabitat))+
   scale_shape_manual(values=shapes)+
   facet_grid(Site~Season, scales="free")+
   theme_bw() %+replace% large
+```
+
+```{r, fig.height=8, fig.width=12}
+drows <- vegdist(t(b)^0.25)
+dcols <- vegdist(b^0.25)
+
+annotation_col <- fac[, -4][,c(3,2,1,4)]
+rownames(annotation_col) <- row.names(b)
+
+annotation_colors <- list(
+   Microhabitat=c("Tube of E. taoi" = "#222222", "A. glomerata" = "#f3c300", 
+                  "M. rosea" = "#875692", "Jania sp.1" = "#f38400", 
+                  "Gravel, sand, silt" = "#a1caf1","H. pannosa" = "#be0032", 
+                  "A. taxiformis" = "#c2b280", "Asparagopsis sp." = "#c2b280", 
+                  "Chlorodesmis sp." = "#c2b280", "Halimeda sp." = "#c2b280", 
+                  "Padina sp." = "#c2b280", "C. pilulifera" = "#c2b280", 
+                  "Caulerpa sp." = "#c2b280", "Plocamium sp." = "#848482", 
+                  "Hypnea sp." = "#848482", "Gelidium sp." = "#848482", 
+                  "Jania sp.2" = "#008856"),
+  Season=c(SP="white", SU="black"),
+  Site=c(STP="#440154FF", JH="#21908CFF", JLL="#FDE725FF"),
+  Group=c("1"="#440154FF", "2"="#21908CFF", "3"="#FDE725FF", "4"="white")
+)
+
+pheatmap(t(b)^0.25, 
+         color = brewer.pal(9, "Blues"), 
+         clustering_distance_rows = drows, 
+         clustering_distance_cols = dcols, 
+         clustering_method = "average", 
+         legend_breaks = 0:4,
+         legend_labels = (0:4)^4,
+         cutree_cols = 4, 
+         annotation_col = annotation_col, 
+         annotation_colors = annotation_colors,
+         fontsize_col=4, fontsize_row=12)
 ```
 
 # Aggregate by site-season
