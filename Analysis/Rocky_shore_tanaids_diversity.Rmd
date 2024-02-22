@@ -53,11 +53,12 @@ ta$Replicate <- str_extract(ta0$Microhabitat, "(?<=\\()\\d+(?=\\))")
 ta <- cbind(ta, ta0[,-1:-3])
 # Remove zero rows
 ta <- ta[rowSums(ta0[,-1:-3])!=0, ]
-ta$Site <- factor(ta$Site, levels=c("Shitiping", "Jihuei", "Jialulan"), labels = c("STP", "JH", "JLL"))
-ta$Season <- factor(ta$Season, levels = c("SP", "SU"), labels = c("AP", "AU"))
+ta$Site <- factor(ta$Site, levels=c("Shitiping", "Jihuei", "Jialulan"), labels = c("A", "B", "C"))
+ta$Season <- factor(ta$Season, levels = c("SP", "SU"), labels = c("4", "8"))
+names(ta)[2] <- "Month"
 # Only keep data for analysis
 b <- ta[, -1:-4]
-rownames(b) <- with(ta, paste(Site, Season, Microhabitat, Replicate, sep="_"))
+rownames(b) <- with(ta, paste(Site, Month, Microhabitat, Replicate, sep="_"))
 ```
 
 # Prepare CWB data
@@ -106,10 +107,10 @@ tmp <- rbind(hb, cg, tb)
 # Aggregate by microhabitat
 
 ```{r}
-ta2 <- aggregate(b, by = list(ta$Site, ta$Season), FUN=sum)
-names(ta2)[1:2] <- c("Site", "Season")
+ta2 <- aggregate(b, by = list(ta$Site, ta$Month), FUN=sum)
+names(ta2)[1:2] <- c("Site", "Month")
 b2 <- ta2[, -1:-2]
-rownames(b2) <- with(ta2, paste(Site, Season, sep="_"))
+rownames(b2) <- with(ta2, paste(Site, Month, sep="_"))
 ```
 
 # Estimate Hill Numbers
@@ -119,7 +120,7 @@ rownames(b2) <- with(ta2, paste(Site, Season, sep="_"))
 q0 <- iNEXT3D(t(b2), diversity = "TD", q = 0, nboot=1000)
 q1 <- iNEXT3D(t(b2), diversity = "TD", q = 1, nboot=1000)
 q2 <- iNEXT3D(t(b2), diversity = "TD", q = 2, nboot=1000)
-#save(list=c("q0", "q1", "q2"), file="HillNumbersTD.rda")
+#save(list=c("q0", "q1", "q2"), file="../Data/HillNumbersTD.rda")
 ```
 
 ```{r, fig.width=12, fig.height=4}
@@ -129,7 +130,7 @@ h <- rbind(q0$iNextEst$size_based,
            q1$iNextEst$size_based,
            q2$iNextEst$size_based)
 h <- cbind(h, ta2[match(h$Assemblage, rownames(b2)), 1:2])
-h$Season <- factor(h$Season, labels=c("SP", "SU"))
+h$Month <- factor(h$Month, levels=c("4", "8"))
 ```
 
 Fig. X. Size-based diversity accumulation curves based on spe richness (left), effective number of typical species (middle) and effective number of dominant species (right). The blue lines indicate the interpolated (rarefied) and red lines indicate extrapolated parts of the accumulation curves based on 1000 permutations. Dotted symbols indicate the observed diversity values.
@@ -156,7 +157,7 @@ p1 <- ggplot()+
              aes(x=m, y=qD, group=Assemblage))+
   scale_fill_viridis_d()+
   scale_color_viridis_d()+
-  facet_wrap(~Season, scale="free")+
+  facet_wrap(~Month, scale="free")+
   labs(x = "Numbers of Individuals", y = expression(Species~Richness~(""^0*italic(D))),
        colour="Site")+
   theme_bw()%+replace% large %+replace% theme(axis.text.x = element_blank(), axis.title.x = element_blank())
@@ -176,7 +177,7 @@ p2 <- ggplot()+
              aes(x=m, y=qD, group=Assemblage))+
   scale_fill_viridis_d()+
   scale_color_viridis_d()+
-  facet_wrap(~Season, scale="free")+
+  facet_wrap(~Month, scale="free")+
   labs(x = "Numbers of Individuals", y = expression(Species~Richness~(""^1*italic(D))),
        colour="Site")+
   theme_bw()%+replace% large %+replace% theme(legend.position = "none")
@@ -198,7 +199,7 @@ p3 <- ggplot()+
              aes(x=SC, y=qD, group=Assemblage))+
   scale_fill_viridis_d()+
   scale_color_viridis_d()+
-  facet_wrap(~Season, scale="free")+
+  facet_wrap(~Month, scale="free")+
   labs(x = "Sample Completeness", y = expression(Species~Richness~(""^0*italic(D))),
        colour="Site")+
   theme_bw()%+replace% large %+replace% theme(axis.text.x = element_blank(), axis.title.x = element_blank())
@@ -216,7 +217,7 @@ p4 <- ggplot()+
              aes(x=SC, y=qD, group=Assemblage))+
   scale_fill_viridis_d()+
   scale_color_viridis_d()+
-  facet_wrap(~Season, scale="free")+
+  facet_wrap(~Month, scale="free")+
   labs(x = "Sample Completeness", y = expression(Species~Richness~(""^1*italic(D))),
        colour="Site")+
   theme_bw()%+replace% large %+replace% theme(legend.position = "none")
@@ -228,19 +229,19 @@ p3/p4
 
 ```{r}
 fr <- strsplit(q0$DataInfo$Assemblage, split="_") %>% ldply
-names(fr) <- c("Site", "Season")
-fr$Season <- factor(fr$Season, labels=c("SP", "SU"))
+names(fr) <- c("Site", "Month")
+fr$Month <- factor(fr$Month, levels=c("4", "8"))
 h1_out <- lapply(splitBy(~Assemblage, h1), FUN=function(x)tail(x, n=1)) %>% ldply
 h2_out <- lapply(splitBy(~Assemblage, h2), FUN=function(x)tail(x, n=1)) %>% ldply
 ```
 
 ```{r}
 t0 <- cbind(cbind(fr, S.obs = q0$DataInfo$S.obs), tmp[c(1, 3, 5, 2, 4, 6),]) 
-t0$Site <- factor(t0$Site, levels=c("STP", "JH", "JLL"))
+t0$Site <- factor(t0$Site, levels=c("A", "B", "C"))
 t1 <- cbind(h1_out, tmp[c(1, 3, 5, 2, 4, 6),])
 t2 <- cbind(h2_out, tmp[c(1, 3, 5, 2, 4, 6),])
 h2 <- readRDS("../Data/H2.rds")
-h2$Site <- factor(h2$Site, levels=c("STP", "JH", "JLL"))
+h2$Site <- factor(h2$Site, levels=c("A", "B", "C"))
 ```
 
 ```{r}
@@ -249,13 +250,13 @@ r2 <- round(summary(lm(S.obs~Mean, data=t0))$adj.r.squared, 2)
 f <- round(summary(lm(S.obs~Mean, data=t0))$fstatistic[1], 2)
 label = paste0("italic(F)['1,4'] ==", f, "*','~P==", pv, "*','~italic(R)^2 ==", r2)
 
-p7 <- ggplot(data=t0, aes(x=Mean, y=S.obs, shape=Season, colour=Site))+
+p7 <- ggplot(data=t0, aes(x=Mean, y=S.obs, shape=Month, colour=Site))+
   geom_point(size=2, stroke=1.5)+
   stat_smooth(formula=y~x, method = "glm", aes(group=1), alpha=0.2, colour="gray", linetype=2)+
   annotate(geom = "text", x = 24, y = 12.5, hjust = 0, vjust = 1, label = label, parse = TRUE) +
   scale_color_viridis_d()+
   scale_shape_manual(values=c(1,19))+
-  labs(x = expression(Temperature~(degree~C)), y = "Numbers of Species", title="a")+
+  labs(x = expression(Temperature~(degree~C)), y = "Numbers of Species", title="a", shape="Month")+
   theme_bw() %+replace% large %+replace% theme(axis.text.x = element_blank(), axis.title.x = element_blank(), legend.position = "none")
 ```
 
@@ -265,14 +266,14 @@ r2 <- round(summary(lm(qD~Mean, data=t1))$adj.r.squared, 2)
 f <- round(summary(lm(qD~Mean, data=t1))$fstatistic[1], 2)
 label = paste0("italic(F)['1,4'] ==", f, "*','~P==", pv, "*','~italic(R)^2 ==", r2)
 
-p8 <- ggplot(data=t1, aes(x=Mean, y=qD, ymin=qD.LCL, ymax=qD.UCL, shape=Season, colour=Site))+
+p8 <- ggplot(data=t1, aes(x=Mean, y=qD, ymin=qD.LCL, ymax=qD.UCL, shape=Month, colour=Site))+
   geom_point(size=2, stroke=1.5)+
   geom_errorbar()+
   stat_smooth(formula=y~x, method = "glm", aes(group=1), alpha=0.2, colour="gray", linetype=2)+
   annotate(geom = "text", x = 24.5, y = 22, hjust = 0, vjust = 1, label = label, parse = TRUE) +
   scale_color_viridis_d()+
   scale_shape_manual(values=c(1,19))+
-  labs(x = expression(Temperature~(degree~C)), y = expression(Species~Richness~(""^0*italic(D))), title="b")+
+  labs(x = expression(Temperature~(degree~C)), y = expression(Species~Richness~(""^0*italic(D))), title="b", shape="Month")+
   theme_bw() %+replace% large %+replace% theme(axis.text.x = element_blank(), axis.title.x = element_blank())
 ```
 
@@ -282,14 +283,14 @@ r2 <- round(summary(lm(qD~Mean, data=t2))$adj.r.squared, 2)
 f <- round(summary(lm(qD~Mean, data=t2))$fstatistic[1], 2)
 label = paste0("italic(F)['1,4'] ==", f, "*','~P==", pv, "*','~italic(R)^2 ==", r2)
 
-p9 <- ggplot(data=t2, aes(x=Mean, y=qD, ymin=qD.LCL, ymax=qD.UCL, shape=Season, colour=Site))+
+p9 <- ggplot(data=t2, aes(x=Mean, y=qD, ymin=qD.LCL, ymax=qD.UCL, shape=Month, colour=Site))+
   geom_point(size=2, stroke=1.5)+
   geom_errorbar()+
   stat_smooth(formula=y~x, method = "glm", aes(group=1), alpha=0.2, colour="gray", linetype=2)+
   annotate(geom = "text", x = 24, y = 6, hjust = 0, vjust = 1, label = label, parse = TRUE) +
   scale_color_viridis_d()+
   scale_shape_manual(values=c(1,19))+
-  labs(x = expression(Temperature~(degree~C)), y = expression(Shannon~Diversity~(""^1*italic(D))), title="c")+
+  labs(x = expression(Temperature~(degree~C)), y = expression(Shannon~Diversity~(""^1*italic(D))), title="c", shape="Month")+
   theme_bw()%+replace% large %+replace% theme(legend.position = "none")
 ```
 
@@ -299,19 +300,52 @@ r2 <- round(summary(lm(H2~Mean, data=h2))$adj.r.squared, 2)
 f <- round(summary(lm(H2~Mean, data=h2))$fstatistic[1], 2)
 label = paste0("italic(F)['1,4'] ==", f, "*','~P==", pv, "*','~italic(R)^2 ==", r2)
 
-p10<- ggplot(data=h2, aes(x=Mean, y=H2, ymin=X1, ymax=X2, shape=Season, colour=Site))+
+p10<- ggplot(data=h2, aes(x=Mean, y=H2, ymin=X1, ymax=X2, shape=Month, colour=Site))+
   geom_point(size=2, stroke=1.5)+
   geom_errorbar()+
   stat_smooth(formula=y~x, method = "glm", aes(group=1), alpha=0.2, colour="gray")+
   annotate(geom = "text", x = 24.5, y = 0.95, hjust = 0, vjust = 1, label = label, parse = TRUE) +
   scale_color_viridis_d()+
   scale_shape_manual(values=c(1,19))+
-  labs(x = expression(Temperature~(degree~C)), y = "H2' index", title="d")+
+  labs(x = expression(Temperature~(degree~C)), y = "H2' index", title="d", shape="Month")+
   theme_bw()%+replace% large %+replace% theme(legend.position = "none")
 ```
 
 ```{r, fig.width=8, fig.height=8}
 (p7+p8)/(p9+p10)
+```
+
+```{r}
+p11 <- ggplot(data=t0, aes(x=Site, y=S.obs, fill=Month))+
+  geom_bar(stat = "identity", position=position_dodge())+
+  scale_fill_viridis_d()+
+  labs(x = "Site", y = "Numbers of Species", title="a", shape="Month")+
+  theme_bw() %+replace% large %+replace% theme(axis.text.x = element_blank(), axis.title.x = element_blank(), legend.position = "none")
+
+p12 <- ggplot(data=t1, aes(x=Site, y=qD, ymin=qD.LCL, ymax=qD.UCL, fill=Month))+
+  geom_bar(stat = "identity", position=position_dodge())+
+  geom_errorbar(stat = "identity", position=position_dodge(), linetype=2)+
+  scale_fill_viridis_d()+
+  labs(x = expression(Temperature~(degree~C)), y = expression(Species~Richness~(""^0*italic(D))), title="b", shape="Month")+
+  theme_bw() %+replace% large %+replace% theme(axis.text.x = element_blank(), axis.title.x = element_blank())
+
+p13 <- ggplot(data=t2, aes(x=Site, y=qD, ymin=qD.LCL, ymax=qD.UCL, fill=Month))+
+  geom_bar(stat = "identity", position=position_dodge())+
+  geom_errorbar(stat = "identity", position=position_dodge(), linetype=2)+
+  scale_fill_viridis_d()+
+  labs(x = "Site", y = expression(Shannon~Diversity~(""^1*italic(D))), title="c", shape="Month")+
+  theme_bw()%+replace% large %+replace% theme(legend.position = "none")
+
+p14<- ggplot(data=h2, aes(x=Site, y=H2, ymin=X1, ymax=X2, fill=Month))+
+  geom_bar(stat = "identity", position=position_dodge())+
+  geom_errorbar(stat = "identity", position=position_dodge(), linetype=2)+
+  scale_fill_viridis_d()+
+  labs(x = "Site", y = "H2' index", title="d", shape="Month")+
+  theme_bw()%+replace% large %+replace% theme(legend.position = "none")
+```
+
+```{r, fig.width=8, fig.height=8}
+(p11+p12)/(p13+p14)
 ```
 
 ```{r}

@@ -34,7 +34,7 @@ Taitung <- c(22.72, 121.14)
 site <- rbind(Shitiping, Jihuei, Jialulan)%>%as.data.frame
 site <- cbind(row.names(site), site)
 names(site) <- c("Site", "Y", "X")
-site$Site <- factor(site$Site, levels=c("Shitiping", "Jihuei", "Jialulan"), labels = c("Shitiping (STP)", "Jihuei (JH)", "Jialulan (JLL)"))
+site$Site <- factor(site$Site, levels=c("Shitiping", "Jihuei", "Jialulan"), labels = c("Shitiping (A)", "Jihuei (B)", "Jialulan (C)"))
 
 buoy <- rbind(Hualien, Chenggong, Taitung)%>%as.data.frame
 buoy <- cbind(row.names(buoy), buoy)

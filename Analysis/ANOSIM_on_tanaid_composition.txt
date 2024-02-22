@@ -10,13 +10,13 @@ Selection: All
 
 Factors
 Place	Name	Type	Levels
-A	Season	Unordered	     2
+A	Month	Unordered	     2
 B	Site	Unordered	     3
 C	Microhabitat	Unordered	    17
 
-Season levels
-SP
-SU
+Month levels
+4
+8
 
 Site levels
 JH
@@ -42,41 +42,41 @@ Plocamium sp.
 Hypnea sp.
 H. pannosa
 
-Tests for differences between unordered Season groups
+Tests for differences between unordered Month groups
 (across all Site groups)
 (using Microhabitat groups as samples)
 Global Test
 Sample statistic (Average R): 0.035
-Significance level of sample statistic: 23.5%
-Number of permutations: 999 (Random sample from a large number)
-Number of permuted statistics greater than or equal to Average R: 234
+Significance level of sample statistic: 22.2%
+Number of permutations: 9999 (Random sample from a large number)
+Number of permuted statistics greater than or equal to Average R: 2214
 
 Tests for differences between unordered Site groups
-(across all Season groups)
+(across all Month groups)
 (using Microhabitat groups as samples)
 Global Test
 Sample statistic (Average R): 0.6
-Significance level of sample statistic: 0.1%
-Number of permutations: 999 (Random sample from a large number)
+Significance level of sample statistic: 0.01%
+Number of permutations: 9999 (Random sample from a large number)
 Number of permuted statistics greater than or equal to Average R: 0
 
 Pairwise Tests
 	        R	Significance	    Possible	      Actual	Number >=
 Groups	Statistic	     Level %	Permutations	Permutations	 Observed
-JH, JLL	    0.457	         0.1	     8848840	         999	        0
-JH, STP	    0.548	         0.1	       58212	         999	        0
-JLL, STP	    0.729	         0.1	    24776752	         999	        0
+JH, JLL	    0.457	        0.03	     8848840	        9999	        2
+JH, STP	    0.548	        0.03	       58212	        9999	        2
+JLL, STP	    0.729	        0.01	    24776752	        9999	        0
 
 Tests for differences between unordered Microhabitat groups
-(across all Season x Site groups)
+(across all Month x Site groups)
 Global Test
 Sample statistic (Average R): 0.305
-Significance level of sample statistic: 0.1%
-Number of permutations: 999 (Random sample from a large number)
+Significance level of sample statistic: 0.01%
+Number of permutations: 9999 (Random sample from a large number)
 Number of permuted statistics greater than or equal to Average R: 0
 
 Outputs
-Plot: Graph29
-Plot: Graph30
-Plot: Graph31
+Plot: Graph36
+Plot: Graph37
+Plot: Graph38
 

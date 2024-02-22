@@ -1,0 +1,68 @@
+ANOSIM
+Analysis of Similarities
+
+Three-Way - C(AxB)
+
+Resemblance worksheet
+Name: Resem1
+Data type: Similarity
+Selection: All
+
+Factors
+Place	Name	Type	Levels
+A	Month	Unordered	     2
+B	Site	Unordered	     3
+C	Microhabitat2	Unordered	     3
+
+Month levels
+4
+8
+
+Site levels
+JH
+JLL
+STP
+
+Microhabitat2 levels
+Macroalgae
+Tube of E. taoi
+Gravel, sand, silt
+
+Tests for differences between unordered Month groups
+(across all Site groups)
+(using Microhabitat2 groups as samples)
+Global Test
+Sample statistic (Average R): -0.143
+Significance level of sample statistic: 78.4%
+Number of permutations: 1000 (All possible permutations)
+Number of permuted statistics greater than or equal to Average R: 784
+
+Tests for differences between unordered Site groups
+(across all Month groups)
+(using Microhabitat2 groups as samples)
+Global Test
+Sample statistic (Average R): 0.528
+Significance level of sample statistic: 0.6%
+Number of permutations: 9999 (Random sample from 29400)
+Number of permuted statistics greater than or equal to Average R: 55
+
+Pairwise Tests
+	        R	Significance	    Possible	      Actual	Number >=
+Groups	Statistic	     Level %	Permutations	Permutations	 Observed
+JH, JLL	     0.02	          39	         100	         100	       39
+JH, STP	    0.629	         3.3	          30	          30	        1
+JLL, STP	    0.844	           1	         100	         100	        1
+
+Tests for differences between unordered Microhabitat2 groups
+(across all Month x Site groups)
+Global Test
+Sample statistic (Average R): 0.143
+Significance level of sample statistic: 3%
+Number of permutations: 9999 (Random sample from a large number)
+Number of permuted statistics greater than or equal to Average R: 295
+
+Outputs
+Plot: Graph39
+Plot: Graph40
+Plot: Graph41
+

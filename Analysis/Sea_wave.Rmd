@@ -43,7 +43,7 @@ names(che)[4:5] <- c("H", "T")
 #che <- che[che$Dif!=0,]
 out <- rbind(hua[, c(1:4, 6, 8:11)], che)
 names(out)[1] <- "Buoy"
-out$Buoy <- factor(out$Buoy, levels=c("Hualien buoy", "Chenggong"))
+out$Buoy <- factor(out$Buoy, levels=c("Hualien buoy", "Chenggong"), labels=c("Hualien Buoy (A)", "Chenggong Buoy (B)"))
 
 # Typhoon impact periods
 rec <- rbind(c("2012-07-30 00:00", "2012-08-03 23:59"), 
@@ -65,6 +65,21 @@ ggplot()+
   facet_wrap(~Buoy, ncol=1, scales="free")+
   labs(x="", y="Significant wave height (m)")+
   scale_x_datetime(limits = as.POSIXct(c("2012-07-28 00:00", "2012-08-31 23:59")), expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_fill_viridis_d()+
+  scale_colour_viridis_d()+
+  theme_bw() 
+```
+
+```{r, fig.width=8, fig.height=6}
+ggplot()+
+  geom_rect(data=rec, aes(xmin = xmin, xmax = xmax, ymin=0, ymax=Inf, fill=Typhoon), alpha=0.5)+
+  geom_rect(data=rec, aes(xmin = as.POSIXct("2012-04-18 08:00"), xmax = as.POSIXct("2012-04-21 17:00"), ymin=0, ymax=Inf), fill="transparent", colour="red", linetype=2)+
+  geom_rect(data=rec, aes(xmin = as.POSIXct("2012-08-18 08:00"), xmax = as.POSIXct("2012-08-20 17:00"), ymin=0, ymax=Inf), fill="transparent", colour="red", linetype=2)+
+  geom_path(data = out, aes(x=yyyymmddhhmi, y=H/100, group=Grp))+
+  facet_wrap(~Buoy, ncol=1, scales="free")+
+  labs(x="", y="Significant wave height (m)")+
+  scale_x_datetime(limits = as.POSIXct(c("2012-04-01 00:00", "2012-08-31 23:59")), expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
   scale_fill_viridis_d()+
   scale_colour_viridis_d()+

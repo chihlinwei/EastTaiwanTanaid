@@ -49,23 +49,28 @@ ta0 <- read_excel("../Data/Tanaidacea community.xlsx", sheet = 3)
 ta <- ta0[, 1:2]
 # Create factor "Microhabitat"
 ta$Microhabitat <- str_replace(ta0$Microhabitat, " \\s*\\([^\\)]+\\)", "")
+ta$Microhabitat2 <- ta$Microhabitat
+ta$Microhabitat2[!(ta$Microhabitat2=="Gravel, sand or silt" | ta$Microhabitat2=="Tube of Eunice taoi")] <- "Macroalgae"
 # Create factor "Replicate"
 ta$Replicate <- str_extract(ta0$Microhabitat, "(?<=\\()\\d+(?=\\))")
 ta <- cbind(ta, ta0[,-1:-3])
 # Remove zero rows
 ta <- ta[rowSums(ta0[,-1:-3])!=0, ]
-ta$Site <- factor(ta$Site, levels=c("Shitiping", "Jihuei", "Jialulan"), labels = c("STP", "JH", "JLL"))
-ta$Season <- factor(ta$Season, levels = c("SP", "SU"))
+ta$Site <- factor(ta$Site, levels=c("Shitiping", "Jihuei", "Jialulan"), labels = c("A", "B", "C"))
+ta$Season <- factor(ta$Season, levels = c("SP", "SU"), labels = c("4", "8"))
 
-names(ta)[-1:-4] <- c("P. pangcahi", "Cyclopoapseudes sp.", "P. tagopilosus", "S. hansmuelleri", "I. multituberculata", "C. taitungensis", "P. setosa", "A. lenoprimorum","A. pedecerritulus", "T. nuwalianensis", "Z. shitipingensis", "Z. zorro")
+names(ta)[-1:-5] <- c("P. pangcahi", "Cyclopoapseudes sp.", "P. tagopilosus", "S. hansmuelleri", "I. multituberculata", "C. taitungensis", "P. setosa", "A. lenoprimorum","A. pedecerritulus", "T. nuwalianensis", "Z. shitipingensis", "Z. zorro")
 
 ta$Microhabitat <- factor(ta$Microhabitat, 
                           levels = c("Amansia glomerata", "Asparagopsis sp.", "Asparagopsis taxiformis", "Caulerpa sp.", "Chlorodesmis sp.", "Corallina pilulifera", "Gelidium sp.", "Gravel, sand or silt", "Halimeda sp.", "Hypnea pannosa", "Hypnea sp.", "Jania sp.1", "Jania sp.2", "Mastophora rosea", "Padina sp.", "Plocamium sp.", "Tube of Eunice taoi"), 
                           labels = c("A. glomerata", "Asparagopsis sp.", "A. taxiformis", "Caulerpa sp.", "Chlorodesmis sp.", "C. pilulifera", "Gelidium sp.", "Gravel, sand, silt", "Halimeda sp.", "H. pannosa", "Hypnea sp.", "Jania sp.1", "Jania sp.2", "M. rosea", "Padina sp.", "Plocamium sp.", "Tube of E. taoi"))
+ta$Microhabitat2 <- factor(ta$Microhabitat2, levels=c("Gravel, sand or silt", "Macroalgae", "Tube of Eunice taoi"), 
+                           labels=c("Gravel, sand, silt", "Macroalgae", "Tube of E. taoi"))
+names(ta)[2] <- "Month"
 
 # Only keep data for analysis
-b <- ta[, -1:-4]
-rownames(b) <- with(ta, paste(Site, Season, Microhabitat, Replicate, sep="_"))
+b <- ta[, -1:-5]
+rownames(b) <- with(ta, paste(Site, Month, Microhabitat, Replicate, sep="_"))
 ```
 
 # Preparing microhabitat grain size data
@@ -80,20 +85,27 @@ cs$Microhabitat <- factor(cs$Microhabitat, levels=c("Amansia glomerata", "Aspara
                           labels = c("A. glomerata", "Asparagopsis sp.", "A. taxiformis", "Caulerpa sp.", "Chlorodesmis sp.", 
                                      "C. pilulifera", "Gelidium sp.", "Gravel, sand, silt", "Halimeda sp.", "H. pannosa",  
                                      "Jania sp.1", "Jania sp.2", "M. rosea", "Padina sp.", "Tube of E. taoi"))
+cs$Microhabitat2 <- as.character(cs$Microhabitat)
+cs$Microhabitat2[!(cs$Microhabitat2=="Gravel, sand, silt" | cs$Microhabitat2=="Tube of E. taoi")] <- "Macroalgae"
+cs$Microhabitat2 <- factor(cs$Microhabitat2)
+cs$Site <- factor(cs$Site, levels=c("STP", "JH", "JLL"), labels=c("A", "B", "C"))
+cs$Season <- factor(cs$Season, levels=c("SP", "SU"), labels=c("4", "8"))
+cs <- cs[,c(1:3, 10, 4:9)]
+names(cs)[2] <- "Month"
 
-# Average by site, season, and microhabitat
-cs_avg <- aggregate(cs[,-1:-5], by=list(cs$Site, cs$Season, cs$Microhabitat), FUN=mean, na.rm=TRUE)
-names(cs_avg)[1:3] <- c("Site", "Season", "Microhabitat")
+# Average by site, Month, and microhabitat
+cs_avg <- aggregate(cs[,-1:-6], by=list(cs$Site, cs$Month, cs$Microhabitat, cs$Microhabitat2), FUN=mean, na.rm=TRUE)
+names(cs_avg)[1:4] <- c("Site", "Month", "Microhabitat", "Microhabitat2")
 cs_avg[is.na(cs_avg)] <- 0
 
 cs[is.na(cs)] <- 0
-cs_names <- with(cs,  paste(Site, Season, Microhabitat, Replicate, sep="_"))
-ta_names <- with(ta,  paste(Site, Season, Microhabitat, Replicate, sep="_"))
-env <- cs[match(ta_names, cs_names), -1:-5]
+cs_names <- with(cs,  paste(Site, Month, Microhabitat, Replicate, sep="_"))
+ta_names <- with(ta,  paste(Site, Month, Microhabitat, Replicate, sep="_"))
+env <- cs[match(ta_names, cs_names), -1:-6]
 row.names(env) <- rownames(b)
 
 # Logit transformation and normalized (divided by sd)
-ens <- scale(logit(cs[, 6:9]/100))[match(ta_names, cs_names), ] %>% as.data.frame
+ens <- scale(logit(cs[, 7:10]/100))[match(ta_names, cs_names), ] %>% as.data.frame
 row.names(ens) <- rownames(b)
 ```
 
@@ -134,11 +146,11 @@ cg <- MonthlyTemperatureFun(8) %>% subset((DataMonth=="4"|DataMonth=="8") & Mini
 tb <- MonthlyTemperatureFun(34) %>% subset((DataMonth=="4"|DataMonth=="8") & MinimumYear == "2012" & MaximumYear == "2012")
 
 tmp <- rbind(hb, cg, tb)
-tmp$Site <- factor(tmp$StationNameEN, levels=c("Hualien Buoy", "Chenggong", "Taitung Buoy"), labels = c("STP", "JH", "JLL"))
-tmp$Season <- factor(tmp$DataMonth, levels=c(4, 8), labels=c("SP", "SU"))
+tmp$Site <- factor(tmp$StationNameEN, levels=c("Hualien Buoy", "Chenggong", "Taitung Buoy"), labels = c("A", "B", "C"))
+tmp$Month <- factor(tmp$DataMonth, levels=c(4, 8))
 
-tmp_names <- with(tmp, paste(Site, Season, sep="_"))
-ta_names <- with(ta,  paste(Site, Season, sep="_"))
+tmp_names <- with(tmp, paste(Site, Month, sep="_"))
+ta_names <- with(ta,  paste(Site, Month, sep="_"))
 
 env$Temperature <- tmp$Mean[match(ta_names, tmp_names)]
 # Log 10 transformation and normalize (divided by sd)
@@ -155,7 +167,7 @@ d <- vegdist(b^0.25)
 hc <- hclust(d, method="average")
 #plot(x = hc, labels =  row.names(hc), cex = 0.5, hang=-1)
 #rect.hclust(tree = hc, k = 4)
-fac <- ta[, 1:4]
+fac <- ta[, 1:5]
 fac$Group <- cutree(hc, 4)
 # Reorder group from north to south as Groups 1, 2, 3
 fac$Group <- factor(fac$Group, levels=c(1,2,3,4), labels = c(2, 3, 1, 4))
@@ -182,7 +194,7 @@ table(subset(fac, Group==3)$Site)
 
 ### Nonmetric Multidimensional Scaling
 
-```{r, fig.width=10, fig.height=4}
+```{r, fig.width=12, fig.height=6}
 # Remove outlier JH_AP_Jania sp.2_1
 md <- metaMDS(vegdist(b[-23,]^0.25))
 stress <- paste("Stress = ", deparse(round(md$stress,2)))
@@ -216,9 +228,9 @@ print(evec)
 
 # Merge MDS to environmental data frame
 p2 <- ggplot(data=cbind(md$points, fac[-23,]), aes(x=MDS1, y=MDS2))+
-  geom_point(alpha=1, size=5, stroke=1, aes(colour=Site, shape=Season))+
+  geom_point(alpha=1, size=5, stroke=1, aes(colour=Site, shape=Month))+
   geom_mark_hull(concavity = 10, aes(group=Group), colour="black", linetype=2)+
-  geom_segment(data= evec, aes(x=0, y=0, xend=MDS1, yend=MDS2, linewidth=pvals, linetype=pvals),
+  geom_segment(data= evec[-5,], aes(x=0, y=0, xend=MDS1, yend=MDS2, linewidth=pvals, linetype=pvals),
                arrow = arrow(length=unit(.4, 'cm')), colour="red")+
   annotate("text", x=-0.9, y=1.1, label=stress, size=5) +
   annotate("text", x=1, y=0, label="1", size=10) +
@@ -231,7 +243,7 @@ p2 <- ggplot(data=cbind(md$points, fac[-23,]), aes(x=MDS1, y=MDS2))+
   scale_linetype_manual(values=c(1, 1, 1, 2))+
   geom_label_repel(data=blab, aes(x=MDS1, y=MDS2, label=label), colour="black", 
              fill=gray(1, 0.6), size=4, label.padding = unit(0.25, "lines"), parse=T)+
-  geom_label_repel(data=evec, aes(x=MDS1*1.2, y=MDS2*1.2, label=label), colour="red", 
+  geom_label_repel(data=evec[-5,], aes(x=MDS1*1.2, y=MDS2*1.2, label=label), colour="red", 
              fill=gray(1, 0.6), size=4, label.padding = unit(0.25, "lines"), force=2)+
   labs(linewidth="p-value", linetype="p-value")+
   theme_bw() %+replace% large
@@ -239,7 +251,7 @@ p2 <- ggplot(data=cbind(md$points, fac[-23,]), aes(x=MDS1, y=MDS2))+
 
 ```{r, fig.width=14, fig.height=6}
 ggdendrogram(hc, rotate = FALSE)+
-  geom_point(data=label(ghc), aes(x, y, colour=Site, shape=Season), size=2, stroke=0.5)+
+  geom_point(data=label(ghc), aes(x, y, colour=Site, shape=Month), size=2, stroke=0.5)+
   geom_hline(yintercept = 0.8, linetype=2, colour="red")+
   annotate("text", x = 95, y = 0.85, label = "2", size = 5)+
   annotate("text", x = 42, y = 0.85, label = "3", size = 5)+
@@ -251,7 +263,7 @@ ggdendrogram(hc, rotate = FALSE)+
 ```
 
 ```{r, fig.width=10, fig.height=7}
-m <- acast(dat=ta, Microhabitat~Site+Season, fun.aggregate = length) 
+m <- acast(dat=ta, Microhabitat~Site+Month, fun.aggregate = length) 
 hc <- vegdist (m) %>% hclust(method="average")
 clust_names <- row.names(m)[rev(hc$order)]
 out <- cbind(md$points, fac[-23,])
@@ -262,16 +274,16 @@ cols <- c("#222222", "#f3c300", "#875692", "#f38400", "#a1caf1", "#be0032", rep(
 shapes <- c(rep(19, 6), 0:6, 15, 17, 18:19)
 
 
-# MDS for each site and season
-md <- lapply(splitBy(~Site+Season, ta), FUN=function(x)metaMDS(x[,-1:-4]))
+# MDS for each site and Month
+md <- lapply(splitBy(~Site+Month, ta), FUN=function(x)metaMDS(x[,-1:-5]))
 # Stress levels
 st <- lapply(md, FUN=function(x)x$stress) %>% ldply
 st <- cbind(strsplit(st$.id, split="[|]") %>% ldply, st[, -1])
-names(st) <- c("Site", "Season", "stress")
+names(st) <- c("Site", "Month", "stress")
 st$stress <- paste("Stress = ", round(st$stress,2))
-st$Site <- factor(st$Site, levels=c("STP", "JH", "JLL"))
+st$Site <- factor(st$Site, levels=c("A", "B", "C"))
 # MDS scores
-md <- cbind(ta[,1:4], lapply(md, FUN=function(x)x$points) %>% ldply)
+md <- cbind(ta[,1:5], lapply(md, FUN=function(x)x$points) %>% ldply)
 md$Microhabitat <- factor(md$Microhabitat, levels = clust_names)
 
 ggplot(data=md, aes(x=MDS1, y=MDS2, colour=Microhabitat, shape=Microhabitat))+
@@ -279,7 +291,16 @@ ggplot(data=md, aes(x=MDS1, y=MDS2, colour=Microhabitat, shape=Microhabitat))+
   geom_text(data = st, inherit.aes = FALSE, aes(x=Inf, y = Inf, label = stress), vjust=1.2, hjust=1.05)+
   scale_colour_manual(values=cols)+
   scale_shape_manual(values=shapes)+
-  facet_grid(Site~Season, scales="free")+
+  facet_grid(Site~Month, scales="free")+
+  theme_bw() %+replace% large
+
+ggplot(data=md, aes(x=MDS1, y=MDS2, colour=Microhabitat2, shape=Microhabitat2))+
+  geom_point(size=3)+
+  geom_text(data = st, inherit.aes = FALSE, aes(x=Inf, y = Inf, label = stress), vjust=1.2, hjust=1.05)+
+  scale_colour_manual(values=c("#222222", "#f3c300", "#875692"))+
+  scale_shape_manual(values=c(19, 2, 15))+
+  labs(colour="Microhabitat", shape="Microhabitat")+
+  facet_grid(Site~Month, scales="free")+
   theme_bw() %+replace% large
 ```
 
@@ -287,7 +308,7 @@ ggplot(data=md, aes(x=MDS1, y=MDS2, colour=Microhabitat, shape=Microhabitat))+
 drows <- vegdist(t(b)^0.25)
 dcols <- vegdist(b^0.25)
 
-annotation_col <- fac[, -4][,c(3,2,1,4)]
+annotation_col <- fac[, -4:-5][,c(3,2,1,4)]
 rownames(annotation_col) <- row.names(b)
 
 annotation_colors <- list(
@@ -300,8 +321,8 @@ annotation_colors <- list(
                   "Caulerpa sp." = "#c2b280", "Plocamium sp." = "#848482", 
                   "Hypnea sp." = "#848482", "Gelidium sp." = "#848482", 
                   "Jania sp.2" = "#008856"),
-  Season=c(SP="white", SU="black"),
-  Site=c(STP="#440154FF", JH="#21908CFF", JLL="#FDE725FF"),
+  Month=c("4"="white", "8"="black"),
+  Site=c(A="#440154FF", B="#21908CFF", C="#FDE725FF"),
   Group=c("1"="#440154FF", "2"="#21908CFF", "3"="#FDE725FF", "4"="white")
 )
 
@@ -318,17 +339,42 @@ pheatmap(t(b)^0.25,
          fontsize_col=4, fontsize_row=12)
 ```
 
-# Aggregate by site-season
+```{r, fig.height=6, fig.width=12}
+annotation_col <- fac[, c(-3, -5)][,c(3,2,1,4)]
+rownames(annotation_col) <- row.names(b)
+names(annotation_col)[1] <- "Microhabitat"
+
+annotation_colors <- list(
+  Microhabitat=c("Tube of E. taoi" = "#222222", "Gravel, sand, silt" = "#a1caf1", "Macroalgae" = "#c2b280"),
+  Month=c("4"="white", "8"="black"),
+  Site=c(A="#440154FF", B="#21908CFF", C="#FDE725FF"),
+  Group=c("1"="#440154FF", "2"="#21908CFF", "3"="#FDE725FF", "4"="white")
+)
+
+pheatmap(t(b)^0.25, 
+         color = brewer.pal(9, "Blues"), 
+         clustering_distance_rows = drows, 
+         clustering_distance_cols = dcols, 
+         clustering_method = "average", 
+         legend_breaks = 0:4,
+         legend_labels = (0:4)^4,
+         cutree_cols = 4, 
+         annotation_col = annotation_col, 
+         annotation_colors = annotation_colors,
+         fontsize_col=4, fontsize_row=12)
+```
+
+# Aggregate by site-Month
 
 ```{r}
-ta3 <- aggregate(b, by = list(ta$Site, ta$Season), FUN=mean)
-names(ta3)[1:2] <- c("Site", "Season")
+ta3 <- aggregate(b, by = list(ta$Site, ta$Month), FUN=mean)
+names(ta3)[1:2] <- c("Site", "Month")
 b3 <- ta3[, -1:-2]
-rownames(b3) <- with(ta3, paste(Site, Season, sep="_"))
+rownames(b3) <- with(ta3, paste(Site, Month, sep="_"))
 
-# Average by site and season
-cs_avg2 <- aggregate(cs[,-1:-5], by=list(cs$Site, cs$Season), FUN=mean, na.rm=TRUE)
-names(cs_avg2)[1:2] <- c("Site", "Season")
+# Average by site and Month
+cs_avg2 <- aggregate(cs[,-1:-6], by=list(cs$Site, cs$Month), FUN=mean, na.rm=TRUE)
+names(cs_avg2)[1:2] <- c("Site", "Month")
 cs_avg2
 ```
 
@@ -350,7 +396,7 @@ ord <- match(label(ghc)$label, rownames(b3))
 ghc[["labels"]]   <- cbind(ghc[["labels"]], fac[ord,])
 
 p5 <- ggdendrogram(hc, rotate = FALSE)+
-  geom_point(data=label(ghc), aes(x, y, colour=Site, shape=Season), size=4, stroke=1.3)+
+  geom_point(data=label(ghc), aes(x, y, colour=Site, shape=Month), size=4, stroke=1.3)+
   annotate("text", x=6, y=0.4, label="a", size=7) +
   scale_shape_manual(values=c(1, 19))+
   scale_color_viridis_d()+

@@ -22,6 +22,8 @@ library(rjson)
 library(car)
 #devtools::install_github("vqv/ggbiplot")
 library(ggbiplot)
+library(knitr)
+library(kableExtra)
 ```
 
 # ggplot theme setting
@@ -50,8 +52,9 @@ ta$Replicate <- str_extract(ta0$Microhabitat, "(?<=\\()\\d+(?=\\))")
 ta <- cbind(ta, ta0[,-1:-3])
 # Remove zero rows
 ta <- ta[rowSums(ta0[,-1:-3])!=0, ]
-ta$Site <- factor(ta$Site, levels=c("Shitiping", "Jihuei", "Jialulan"), labels = c("STP", "JH", "JLL"))
-ta$Season <- factor(ta$Season, levels = c("SP", "SU"))
+ta$Site <- factor(ta$Site, levels=c("Shitiping", "Jihuei", "Jialulan"), labels = c("A", "B", "C"))
+ta$Season <- factor(ta$Season, levels = c("SP", "SU"), labels=c("4", "8"))
+names(ta)[2] <- "Month"
 
 names(ta)[-1:-4] <- c("P. pangcahi", "Cyclopoapseudes sp.", "P. tagopilosus", "S. hansmuelleri", "I. multituberculata", "C. taitungensis", "P. setosa", "A. lenoprimorum","A. pedecerritulus", "T. nuwalianensis", "Z. shitipingensis", "Z. zorro")
 
@@ -61,7 +64,8 @@ ta$Microhabitat <- factor(ta$Microhabitat,
 ```
 
 ```{r}
-m <- acast(dat=ta, Site+Season~Microhabitat, fun.aggregate = length)
+m <- acast(dat=ta, Site+Month~Microhabitat, fun.aggregate = length)
+ma <- acast(dat=cbind(ta[, 1:4], Abundance=ta[, -1:-4]%>%rowSums), Site+Month~Microhabitat, fun.aggregate = sum, value.var = "Abundance")
 # Hierarchical Clustering based on square root transformed abundance data 
 # Agglomeration used group average (= UPGMA) method
 d <- vegdist(t(m))
@@ -70,6 +74,7 @@ clust_names <- colnames(m)[hc$order]
 
 out <- melt(m)
 out$Var2 <- factor(out$Var2, levels=clust_names)
+out$abun <- melt(ma)$value
 out <- out[!out$value==0, ]
 
 p1 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
@@ -78,6 +83,14 @@ p1 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
   labs(x = "", y="Microhabitat", fill="No.", tag="a", title="Replication")+
   theme(axis.text.y = element_text(face = "italic")) 
 ```
+
+```{r}
+fr <- strsplit(as.character(out$Var1), split="_") %>% ldply
+out <- cbind(fr, out[,-1])
+names(out) <- c("Site", "Month", "Microhabitat", "Replication", "Tanaidacea")
+kable(out[order(out$Month, out$Site, out$Microhabitat), c("Month", "Site", "Microhabitat", "Replication", "Tanaidacea")]) %>% kable_classic
+```
+
 
 # Preparing microhabitat grain size data
 
@@ -91,18 +104,20 @@ cs$Microhabitat <- factor(cs$Microhabitat, levels=c("Amansia glomerata", "Aspara
                           labels = c("A. glomerata", "Asparagopsis sp.", "A. taxiformis", "Caulerpa sp.", "Chlorodesmis sp.", 
                                      "C. pilulifera", "Gelidium sp.", "Gravel, sand, silt", "Halimeda sp.", "H. pannosa",  
                                      "Jania sp.1", "Jania sp.2", "M. rosea", "Padina sp.", "Tube of E. taoi"))
-cs$Site <- factor(cs$Site, levels=c("STP", "JH", "JLL"))
+cs$Site <- factor(cs$Site, levels=c("STP", "JH", "JLL"), labels=c("A", "B", "C"))
+cs$Season <- factor(cs$Season, levels=c("SP", "SU"), labels=c("4", "8"))
+names(cs)[2] <- "Month"
 
-# Average by site, season, and microhabitat
-cs_avg <- aggregate(cs[,-1:-5], by=list(cs$Site, cs$Season, cs$Microhabitat), FUN=mean, na.rm=TRUE)
-names(cs_avg)[1:3] <- c("Site", "Season", "Microhabitat")
+# Average by site, Month, and microhabitat
+cs_avg <- aggregate(cs[,-1:-5], by=list(cs$Site, cs$Month, cs$Microhabitat), FUN=mean, na.rm=TRUE)
+names(cs_avg)[1:3] <- c("Site", "Month", "Microhabitat")
 cs_avg[is.na(cs_avg)] <- 0
 cs[is.na(cs)] <- 0
 ```
 
 ```{r}
 # Weight (g)
-m <- acast(dat=cs[,c(1:3, 5)], Site+Season~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
+m <- acast(dat=cs[,c(1:3, 5)], Site+Month~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
 out <- melt(m)
 out$Var2 <- factor(out$Var2, levels=clust_names)
 out <- na.omit(out)
@@ -115,7 +130,7 @@ c0 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=log10(value)))+
   theme(axis.text.y = element_text(face = "italic")) 
 
 # Sit2Clay
-m <- acast(dat=cs[,c(1:3, 6)], Site+Season~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
+m <- acast(dat=cs[,c(1:3, 6)], Site+Month~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
 out <- melt(m)
 out$Var2 <- factor(out$Var2, levels=clust_names)
 out <- na.omit(out)
@@ -128,7 +143,7 @@ c1 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
   theme(axis.text.y = element_text(face = "italic")) 
 
 # Fine2VeryFine
-m <- acast(dat=cs[,c(1:3, 7)], Site+Season~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
+m <- acast(dat=cs[,c(1:3, 7)], Site+Month~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
 out <- melt(m)
 out$Var2 <- factor(out$Var2, levels=clust_names)
 out <- na.omit(out)
@@ -141,7 +156,7 @@ c2 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
   theme(axis.text.y = element_text(face = "italic")) 
 
 # Medium
-m <- acast(dat=cs[,c(1:3, 8)], Site+Season~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
+m <- acast(dat=cs[,c(1:3, 8)], Site+Month~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
 out <- melt(m)
 out$Var2 <- factor(out$Var2, levels=clust_names)
 out <- na.omit(out)
@@ -150,12 +165,12 @@ out <- out[!out$value==0, ]
 c3 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
   geom_tile(colour="black")+
   scale_fill_viridis_c(na.value="white")+
-  labs(x = "Site-Season", y="Microhabitat", fill="%", tag="e", title="Medium sand")+
+  labs(x = "Site_Month", y="Microhabitat", fill="%", tag="e", title="Medium sand")+
   theme(axis.text.y = element_text(face = "italic"))
 
 
 # Coarse2VeryCoarse
-m <- acast(dat=cs[,c(1:3, 9)], Site+Season~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
+m <- acast(dat=cs[,c(1:3, 9)], Site+Month~Microhabitat, fun.aggregate = mean, na.rm=TRUE)
 out <- melt(m)
 out$Var2 <- factor(out$Var2, levels=clust_names)
 out <- na.omit(out)
@@ -164,7 +179,7 @@ out <- out[!out$value==0, ]
 c4 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
   geom_tile(colour="black")+
   scale_fill_viridis_c(na.value="white")+
-  labs(x = "Site-Season", y="", fill="%", tag="f", title="Coarse to very coarse sand")+
+  labs(x = "Site_Month", y="", fill="%", tag="f", title="Coarse to very coarse sand")+
   theme(axis.text.y = element_text(face = "italic"))
 ```
 
@@ -172,3 +187,14 @@ c4 <- ggplot(data=out, aes(x=Var1, y=Var2, fill=value))+
 (p1+c0)/(c1+c2)/(c3+c4)
 ```
 
+```{r}
+total <- ta[,-1:-4]%>%colSums
+species <- names(ta)[-1:-4]
+family <-c("Apseudidae", "Metapseudidae", "Metapseudidae", "Metapseudidae", "Pagurapseudidae", "Leptocheliidae", "Leptocheliidae", "Paratanaidae", 'Pseudotanaidae', "Tanaididae", "Tanaididae", "Tanaididae")
+ord <- order(total, decreasing = TRUE)
+rbind(family[ord], species[ord], total[ord])%>%data.frame%>%kable%>%kable_classic
+
+out <- ta[order(ta$Month, ta$Site, ta$Microhabitat), c("Month", "Site", "Microhabitat", "Replicate", species[ord])]
+out[out==0] <- ""
+kable(out) %>% kable_classic
+```
